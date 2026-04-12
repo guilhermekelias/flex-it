@@ -10,6 +10,14 @@ type User = {
   role: string;
 };
 
+type Student = {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  goal: string;
+};
+
 type LoginResponse = {
   message: string;
   user?: User;
@@ -20,6 +28,7 @@ export function App() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [loggedUser, setLoggedUser] = useState<User | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('flexit_user');
@@ -29,6 +38,22 @@ export function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (loggedUser) {
+      fetchStudents();
+    }
+  }, [loggedUser]);
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/students');
+      const data = await response.json();
+      setStudents(data);
+    } catch {
+      console.error('Erro ao buscar alunos');
+    }
+  };
+
   const handleLogin = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     setMessage('');
@@ -36,9 +61,7 @@ export function App() {
     try {
       const response = await fetch('http://localhost:3000/users/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
@@ -60,11 +83,18 @@ export function App() {
   const handleLogout = () => {
     localStorage.removeItem('flexit_user');
     setLoggedUser(null);
+    setStudents([]);
     setMessage('');
   };
 
   if (loggedUser) {
-    return <DashboardPage user={loggedUser} onLogout={handleLogout} />;
+    return (
+      <DashboardPage
+        user={loggedUser}
+        students={students}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (
