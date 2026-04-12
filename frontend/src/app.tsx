@@ -1,43 +1,80 @@
-import { useState } from 'preact/hooks'
-import preactLogo from './assets/preact.svg'
-import viteLogo from '/vite.svg'
-import './app.css'
+import { useEffect, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
+import { LoginPage } from './components/LoginPage';
+import { DashboardPage } from './components/DashboardPage';
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
+
+type LoginResponse = {
+  message: string;
+  user?: User;
+};
 
 export function App() {
-  const [count, setCount] = useState(0)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [loggedUser, setLoggedUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('flexit_user');
+
+    if (savedUser) {
+      setLoggedUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLogin = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    e.preventDefault();
+    setMessage('');
+
+    try {
+      const response = await fetch('http://localhost:3000/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data: LoginResponse = await response.json();
+
+      setMessage(data.message);
+
+      if (data.user) {
+        setLoggedUser(data.user);
+        localStorage.setItem('flexit_user', JSON.stringify(data.user));
+        setEmail('');
+        setPassword('');
+      }
+    } catch {
+      setMessage('Erro ao conectar com o servidor');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('flexit_user');
+    setLoggedUser(null);
+    setMessage('');
+  };
+
+  if (loggedUser) {
+    return <DashboardPage user={loggedUser} onLogout={handleLogout} />;
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} class="logo" alt="Vite logo" />
-        </a>
-        <a href="https://preactjs.com" target="_blank">
-          <img src={preactLogo} class="logo preact" alt="Preact logo" />
-        </a>
-      </div>
-      <h1>Vite + Preact</h1>
-      <div class="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/app.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p>
-        Check out{' '}
-        <a
-          href="https://preactjs.com/guide/v10/getting-started#create-a-vite-powered-preact-app"
-          target="_blank"
-        >
-          create-preact
-        </a>
-        , the official Preact + Vite starter
-      </p>
-      <p class="read-the-docs">
-        Click on the Vite and Preact logos to learn more
-      </p>
-    </>
-  )
+    <LoginPage
+      email={email}
+      password={password}
+      message={message}
+      onEmailChange={setEmail}
+      onPasswordChange={setPassword}
+      onSubmit={handleLogin}
+    />
+  );
 }
