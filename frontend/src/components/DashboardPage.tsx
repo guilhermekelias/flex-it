@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 type User = {
@@ -18,10 +19,37 @@ type Student = {
 type DashboardPageProps = {
   user: User;
   students: Student[];
+  onCreateStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   onLogout: () => void;
 };
 
-export function DashboardPage({ user, students, onLogout }: DashboardPageProps) {
+export function DashboardPage({
+  user,
+  students,
+  onCreateStudent,
+  onLogout,
+}: DashboardPageProps) {
+  const [name, setName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
+  const [age, setAge] = useState('');
+  const [goal, setGoal] = useState('');
+
+  const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    e.preventDefault();
+
+    await onCreateStudent({
+      name,
+      email: studentEmail,
+      age: Number(age),
+      goal,
+    });
+
+    setName('');
+    setStudentEmail('');
+    setAge('');
+    setGoal('');
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
@@ -49,6 +77,48 @@ export function DashboardPage({ user, students, onLogout }: DashboardPageProps) 
             <p style={styles.cardValue}>--</p>
             <span style={styles.cardText}>Em breve</span>
           </div>
+        </div>
+
+        <div style={styles.infoCard}>
+          <h3 style={styles.sectionTitle}>Cadastrar aluno</h3>
+
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <input
+              type="text"
+              placeholder="Nome do aluno"
+              value={name}
+              onInput={(e) => setName((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="email"
+              placeholder="Email do aluno"
+              value={studentEmail}
+              onInput={(e) => setStudentEmail((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="number"
+              placeholder="Idade"
+              value={age}
+              onInput={(e) => setAge((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="text"
+              placeholder="Objetivo"
+              value={goal}
+              onInput={(e) => setGoal((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <button type="submit" style={styles.button}>
+              Cadastrar aluno
+            </button>
+          </form>
         </div>
 
         <div style={styles.infoCard}>
@@ -157,6 +227,25 @@ const styles: Record<string, JSX.CSSProperties> = {
     margin: '10px 0 0 18px',
     padding: 0,
     color: '#374151',
+  },
+  form: {
+    display: 'grid',
+    gap: '12px',
+  },
+  input: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '14px',
+  },
+  button: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    fontSize: '16px',
+    cursor: 'pointer',
   },
   logoutButton: {
     width: '100%',

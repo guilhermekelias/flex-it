@@ -54,6 +54,26 @@ export function App() {
     }
   };
 
+  const createStudent = async (studentData: Omit<Student, 'id'>) => {
+    try {
+      const response = await fetch('http://localhost:3000/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(studentData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao cadastrar aluno');
+      }
+
+      await fetchStudents();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleLogin = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     setMessage('');
@@ -92,6 +112,7 @@ export function App() {
       <DashboardPage
         user={loggedUser}
         students={students}
+        onCreateStudent={createStudent}
         onLogout={handleLogout}
       />
     );
