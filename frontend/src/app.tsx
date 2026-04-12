@@ -74,6 +74,22 @@ export function App() {
     }
   };
 
+  const deleteStudent = async (id: number) => {
+  try {
+    const response = await fetch(`http://localhost:3000/students/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao deletar aluno');
+    }
+
+    await fetchStudents();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
   const handleLogin = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     setMessage('');
@@ -113,6 +129,7 @@ export function App() {
         user={loggedUser}
         students={students}
         onCreateStudent={createStudent}
+        onDeleteStudent={deleteStudent}
         onLogout={handleLogout}
       />
     );

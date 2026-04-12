@@ -18,4 +18,8 @@ export class StudentsService {
   async findAll(): Promise<Student[]> {
     return this.studentsRepository.find();
   }
+
+  async remove(id: number): Promise<void> {
+    await this.studentsRepository.delete(id);
+  }
 }

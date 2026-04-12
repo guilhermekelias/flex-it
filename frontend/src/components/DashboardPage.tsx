@@ -20,6 +20,7 @@ type DashboardPageProps = {
   user: User;
   students: Student[];
   onCreateStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  onDeleteStudent: (id: number) => Promise<void>;
   onLogout: () => void;
 };
 
@@ -27,6 +28,7 @@ export function DashboardPage({
   user,
   students,
   onCreateStudent,
+  onDeleteStudent,
   onLogout,
 }: DashboardPageProps) {
   const [name, setName] = useState('');
@@ -128,12 +130,20 @@ export function DashboardPage({
             <p>Nenhum aluno cadastrado</p>
           ) : (
             <ul style={styles.list}>
-              {students.map((student) => (
-                <li key={student.id}>
-                  <strong>{student.name}</strong> - {student.goal}
-                </li>
-              ))}
-            </ul>
+             {students.map((student) => (
+              <li key={student.id} style={styles.studentItem}>
+               <span>
+                   <strong>{student.name}</strong> - {student.goal}
+                    </span>
+                     <button
+                  onClick={() => onDeleteStudent(student.id)}
+                  style={styles.deleteButton}
+                >
+                  Remover
+                </button>
+              </li>
+            ))}
+          </ul>
           )}
         </div>
 
@@ -257,4 +267,20 @@ const styles: Record<string, JSX.CSSProperties> = {
     fontSize: '16px',
     cursor: 'pointer',
   },
+
+  studentItem: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '10px',
+  gap: '12px',
+},
+  deleteButton: {
+    border: 'none',
+    backgroundColor: '#dc2626',
+    color: '#ffffff',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+},
 };
