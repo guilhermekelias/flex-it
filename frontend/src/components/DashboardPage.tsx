@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 
 type User = {
@@ -7,12 +8,50 @@ type User = {
   role: string;
 };
 
+type Student = {
+  id: number;
+  name: string;
+  email: string;
+  age: number;
+  goal: string;
+};
+
 type DashboardPageProps = {
   user: User;
+  students: Student[];
+  onCreateStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  onDeleteStudent: (id: number) => Promise<void>;
   onLogout: () => void;
 };
 
-export function DashboardPage({ user, onLogout }: DashboardPageProps) {
+export function DashboardPage({
+  user,
+  students,
+  onCreateStudent,
+  onDeleteStudent,
+  onLogout,
+}: DashboardPageProps) {
+  const [name, setName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
+  const [age, setAge] = useState('');
+  const [goal, setGoal] = useState('');
+
+  const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    e.preventDefault();
+
+    await onCreateStudent({
+      name,
+      email: studentEmail,
+      age: Number(age),
+      goal,
+    });
+
+    setName('');
+    setStudentEmail('');
+    setAge('');
+    setGoal('');
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.wrapper}>
@@ -25,37 +64,93 @@ export function DashboardPage({ user, onLogout }: DashboardPageProps) {
         <div style={styles.grid}>
           <div style={styles.card}>
             <h3 style={styles.cardTitle}>Alunos</h3>
-            <p style={styles.cardValue}>12</p>
+            <p style={styles.cardValue}>{students.length}</p>
             <span style={styles.cardText}>Cadastrados</span>
           </div>
 
           <div style={styles.card}>
             <h3 style={styles.cardTitle}>Treinos</h3>
-            <p style={styles.cardValue}>8</p>
-            <span style={styles.cardText}>Ativos</span>
+            <p style={styles.cardValue}>--</p>
+            <span style={styles.cardText}>Em breve</span>
           </div>
 
           <div style={styles.card}>
             <h3 style={styles.cardTitle}>Métricas</h3>
-            <p style={styles.cardValue}>24</p>
-            <span style={styles.cardText}>Registradas</span>
+            <p style={styles.cardValue}>--</p>
+            <span style={styles.cardText}>Em breve</span>
           </div>
+        </div>
+
+        <div style={styles.infoCard}>
+          <h3 style={styles.sectionTitle}>Cadastrar aluno</h3>
+
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <input
+              type="text"
+              placeholder="Nome do aluno"
+              value={name}
+              onInput={(e) => setName((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="email"
+              placeholder="Email do aluno"
+              value={studentEmail}
+              onInput={(e) => setStudentEmail((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="number"
+              placeholder="Idade"
+              value={age}
+              onInput={(e) => setAge((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <input
+              type="text"
+              placeholder="Objetivo"
+              value={goal}
+              onInput={(e) => setGoal((e.target as HTMLInputElement).value)}
+              style={styles.input}
+            />
+
+            <button type="submit" style={styles.button}>
+              Cadastrar aluno
+            </button>
+          </form>
+        </div>
+
+        <div style={styles.infoCard}>
+          <h3 style={styles.sectionTitle}>Alunos cadastrados</h3>
+
+          {students.length === 0 ? (
+            <p>Nenhum aluno cadastrado</p>
+          ) : (
+            <ul style={styles.list}>
+             {students.map((student) => (
+              <li key={student.id} style={styles.studentItem}>
+               <span>
+                   <strong>{student.name}</strong> - {student.goal}
+                    </span>
+                     <button
+                  onClick={() => onDeleteStudent(student.id)}
+                  style={styles.deleteButton}
+                >
+                  Remover
+                </button>
+              </li>
+            ))}
+          </ul>
+          )}
         </div>
 
         <div style={styles.infoCard}>
           <h3 style={styles.sectionTitle}>Informações do usuário</h3>
           <p><strong>Email:</strong> {user.email}</p>
           <p><strong>Perfil:</strong> {user.role}</p>
-        </div>
-
-        <div style={styles.infoCard}>
-          <h3 style={styles.sectionTitle}>Módulos da Sprint 1</h3>
-          <ul style={styles.list}>
-            <li>Login funcional</li>
-            <li>Integração com backend</li>
-            <li>Persistência com PostgreSQL</li>
-            <li>Dashboard inicial</li>
-          </ul>
         </div>
 
         <button onClick={onLogout} style={styles.logoutButton}>
@@ -143,6 +238,25 @@ const styles: Record<string, JSX.CSSProperties> = {
     padding: 0,
     color: '#374151',
   },
+  form: {
+    display: 'grid',
+    gap: '12px',
+  },
+  input: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '14px',
+  },
+  button: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: 'none',
+    backgroundColor: '#2563eb',
+    color: '#ffffff',
+    fontSize: '16px',
+    cursor: 'pointer',
+  },
   logoutButton: {
     width: '100%',
     padding: '14px',
@@ -153,4 +267,20 @@ const styles: Record<string, JSX.CSSProperties> = {
     fontSize: '16px',
     cursor: 'pointer',
   },
+
+  studentItem: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '10px',
+  gap: '12px',
+},
+  deleteButton: {
+    border: 'none',
+    backgroundColor: '#dc2626',
+    color: '#ffffff',
+    padding: '8px 12px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+},
 };
