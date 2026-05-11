@@ -86,6 +86,7 @@ describe('UsersController', () => {
         email: 'patricia@example.com',
         role: UserRole.PROFESSIONAL,
       },
+      accessToken: 'valid-jwt-token',
     };
 
     usersService.login.mockResolvedValue(loginResult);

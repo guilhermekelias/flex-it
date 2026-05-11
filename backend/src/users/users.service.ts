@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -8,6 +9,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(data: Partial<User>) {
@@ -39,10 +41,16 @@ export class UsersService {
     }
 
     const { password: _, ...userWithoutPassword } = user;
+    const accessToken = await this.jwtService.signAsync({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     return {
       message: 'Login realizado com sucesso',
       user: userWithoutPassword,
+      accessToken,
     };
   }
 }
