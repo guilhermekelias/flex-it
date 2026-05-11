@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { UsersService } from './users.service';
 import { User, UserRole } from './entities/user.entity';
 
@@ -10,9 +11,14 @@ type MockUsersRepository = {
   findOne: jest.Mock;
 };
 
+type MockJwtService = {
+  signAsync: jest.Mock;
+};
+
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepository: MockUsersRepository;
+  let jwtService: MockJwtService;
 
   beforeEach(async () => {
     usersRepository = {
@@ -21,6 +27,9 @@ describe('UsersService', () => {
       find: jest.fn(),
       findOne: jest.fn(),
     };
+    jwtService = {
+      signAsync: jest.fn().mockResolvedValue('valid-jwt-token'),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -28,6 +37,10 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: usersRepository,
+        },
+        {
+          provide: JwtService,
+          useValue: jwtService,
         },
       ],
     }).compile();
@@ -138,8 +151,14 @@ describe('UsersService', () => {
         email: 'patricia@example.com',
         role: UserRole.PROFESSIONAL,
       },
+      accessToken: 'valid-jwt-token',
     });
     expect(result.user).not.toHaveProperty('password');
+    expect(jwtService.signAsync).toHaveBeenCalledWith({
+      sub: 1,
+      email: 'patricia@example.com',
+      role: UserRole.PROFESSIONAL,
+    });
   });
 
   it('should reject login when user is not found', async () => {
@@ -148,6 +167,7 @@ describe('UsersService', () => {
     await expect(service.login('missing@example.com', '123456')).resolves.toEqual({
       message: expect.any(String),
     });
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
   });
 
   it('should reject login when password is invalid', async () => {
@@ -164,5 +184,6 @@ describe('UsersService', () => {
     await expect(service.login('patricia@example.com', 'invalid')).resolves.toEqual({
       message: expect.any(String),
     });
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
   });
 });

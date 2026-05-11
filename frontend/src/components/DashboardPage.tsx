@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
-import { updateStudent } from '../services/api';
 
 type User = {
   id: number;
@@ -22,6 +21,7 @@ type DashboardPageProps = {
   user: User;
   students: Student[];
   onCreateStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  onUpdateStudent: (id: number, student: Omit<Student, 'id'>) => Promise<Student>;
   onDeleteStudent: (id: number) => Promise<void>;
   onLogout: () => void;
 };
@@ -67,6 +67,7 @@ export function DashboardPage({
   user,
   students,
   onCreateStudent,
+  onUpdateStudent,
   onDeleteStudent,
   onLogout,
 }: DashboardPageProps) {
@@ -118,7 +119,7 @@ export function DashboardPage({
 
     if (editingStudentId !== null) {
       try {
-        const updatedStudent = await updateStudent(editingStudentId, studentData);
+        const updatedStudent = await onUpdateStudent(editingStudentId, studentData);
         setVisibleStudents((currentStudents) =>
           currentStudents.map((student) =>
             student.id === updatedStudent.id ? updatedStudent : student,

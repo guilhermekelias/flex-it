@@ -2,26 +2,19 @@ import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { LoginPage } from './components/LoginPage';
 import { DashboardPage } from './components/DashboardPage';
+import {
+  ApiUnauthorizedError,
+  createStudent as createStudentRequest,
+  deleteStudent as deleteStudentRequest,
+  getStudents,
+  login,
+  updateStudent as updateStudentRequest,
+  type Student,
+  type User,
+} from './services/api';
 
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-};
-
-type Student = {
-  id: number;
-  name: string;
-  email: string;
-  age: number;
-  goal: string;
-};
-
-type LoginResponse = {
-  message: string;
-  user?: User;
-};
+const AUTH_USER_STORAGE_KEY = 'flexit_user';
+const AUTH_TOKEN_STORAGE_KEY = 'flexit_token';
 
 export function App() {
   const [email, setEmail] = useState('');
@@ -31,10 +24,15 @@ export function App() {
   const [students, setStudents] = useState<Student[]>([]);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('flexit_user');
+    const savedUser = localStorage.getItem(AUTH_USER_STORAGE_KEY);
+    const savedToken = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
 
-    if (savedUser) {
-      setLoggedUser(JSON.parse(savedUser));
+    if (savedUser && savedToken) {
+      try {
+        setLoggedUser(JSON.parse(savedUser) as User);
+      } catch {
+        clearSession();
+      }
     }
   }, []);
 
@@ -44,70 +42,80 @@ export function App() {
     }
   }, [loggedUser]);
 
+  const clearSession = (nextMessage = '') => {
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    setLoggedUser(null);
+    setStudents([]);
+    setMessage(nextMessage);
+  };
+
+  const handleApiError = (error: unknown) => {
+    if (error instanceof ApiUnauthorizedError) {
+      clearSession('Sessao expirada. Faca login novamente.');
+      return;
+    }
+
+    console.error(error);
+  };
+
   const fetchStudents = async () => {
     try {
-      const response = await fetch('http://localhost:3000/students');
-      const data = await response.json();
+      const data = await getStudents();
       setStudents(data);
-    } catch {
-      console.error('Erro ao buscar alunos');
+    } catch (error) {
+      handleApiError(error);
     }
   };
 
   const createStudent = async (studentData: Omit<Student, 'id'>) => {
     try {
-      const response = await fetch('http://localhost:3000/students', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(studentData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao cadastrar aluno');
-      }
-
+      await createStudentRequest(studentData);
       await fetchStudents();
     } catch (error) {
-      console.error(error);
+      handleApiError(error);
+    }
+  };
+
+  const updateStudent = async (id: number, studentData: Omit<Student, 'id'>) => {
+    try {
+      const updatedStudent = await updateStudentRequest(id, studentData);
+
+      setStudents((currentStudents) =>
+        currentStudents.map((student) =>
+          student.id === updatedStudent.id ? updatedStudent : student,
+        ),
+      );
+
+      return updatedStudent;
+    } catch (error) {
+      handleApiError(error);
+      throw error;
     }
   };
 
   const deleteStudent = async (id: number) => {
-  try {
-    const response = await fetch(`http://localhost:3000/students/${id}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Erro ao deletar aluno');
+    try {
+      await deleteStudentRequest(id);
+      await fetchStudents();
+    } catch (error) {
+      handleApiError(error);
     }
-
-    await fetchStudents();
-  } catch (error) {
-    console.error(error);
-  }
-};
+  };
 
   const handleLogin = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     e.preventDefault();
     setMessage('');
 
     try {
-      const response = await fetch('http://localhost:3000/users/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data: LoginResponse = await response.json();
+      const data = await login({ email, password });
 
       setMessage(data.message);
 
-      if (data.user) {
+      if (data.user && data.accessToken) {
         setLoggedUser(data.user);
-        localStorage.setItem('flexit_user', JSON.stringify(data.user));
+        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data.user));
+        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.accessToken);
         setEmail('');
         setPassword('');
       }
@@ -117,10 +125,7 @@ export function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('flexit_user');
-    setLoggedUser(null);
-    setStudents([]);
-    setMessage('');
+    clearSession();
   };
 
   if (loggedUser) {
@@ -129,6 +134,7 @@ export function App() {
         user={loggedUser}
         students={students}
         onCreateStudent={createStudent}
+        onUpdateStudent={updateStudent}
         onDeleteStudent={deleteStudent}
         onLogout={handleLogout}
       />
