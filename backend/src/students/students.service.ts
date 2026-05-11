@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './entities/student.entity';
@@ -17,6 +17,19 @@ export class StudentsService {
 
   async findAll(): Promise<Student[]> {
     return this.studentsRepository.find();
+  }
+
+  async update(id: number, data: Partial<Student>): Promise<Student> {
+    const student = await this.studentsRepository.preload({
+      ...data,
+      id,
+    });
+
+    if (!student) {
+      throw new NotFoundException('Aluno não encontrado');
+    }
+
+    return this.studentsRepository.save(student);
   }
 
   async remove(id: number): Promise<void> {
