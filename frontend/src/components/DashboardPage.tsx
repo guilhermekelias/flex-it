@@ -1,6 +1,7 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
+import { updateStudent } from '../services/api';
 
 type User = {
   id: number;
@@ -74,27 +75,71 @@ export function DashboardPage({
   const [studentEmail, setStudentEmail] = useState('');
   const [age, setAge] = useState('');
   const [goal, setGoal] = useState('');
+  const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
+  const [visibleStudents, setVisibleStudents] = useState<Student[]>(students);
 
-  const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
-    e.preventDefault();
+  useEffect(() => {
+    setVisibleStudents(students);
+  }, [students]);
 
-    await onCreateStudent({
-      name,
-      email: studentEmail,
-      age: Number(age),
-      goal,
-    });
-
+  const resetStudentForm = () => {
     setName('');
     setStudentEmail('');
     setAge('');
     setGoal('');
+    setEditingStudentId(null);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setEditingStudentId(student.id);
+    setName(student.name);
+    setStudentEmail(student.email);
+    setAge(String(student.age));
+    setGoal(student.goal);
+  };
+
+  const handleDeleteStudent = async (id: number) => {
+    await onDeleteStudent(id);
+
+    if (editingStudentId === id) {
+      resetStudentForm();
+    }
+  };
+
+  const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    e.preventDefault();
+
+    const studentData = {
+      name,
+      email: studentEmail,
+      age: Number(age),
+      goal,
+    };
+
+    if (editingStudentId !== null) {
+      try {
+        const updatedStudent = await updateStudent(editingStudentId, studentData);
+        setVisibleStudents((currentStudents) =>
+          currentStudents.map((student) =>
+            student.id === updatedStudent.id ? updatedStudent : student,
+          ),
+        );
+        resetStudentForm();
+      } catch (error) {
+        console.error(error);
+      }
+
+      return;
+    }
+
+    await onCreateStudent(studentData);
+    resetStudentForm();
   };
 
   const stats = [
     {
       label: 'Alunos',
-      value: students.length,
+      value: visibleStudents.length,
       helper: 'Cadastrados',
       tone: 'primary',
     },
@@ -179,7 +224,7 @@ export function DashboardPage({
           <div className="dashboard-section-heading">
             <div>
               <span className="dashboard-section-kicker">Novo acompanhamento</span>
-              <h2>Cadastrar aluno</h2>
+              <h2>{editingStudentId !== null ? 'Editar aluno' : 'Cadastrar aluno'}</h2>
             </div>
           </div>
 
@@ -227,8 +272,14 @@ export function DashboardPage({
             </div>
 
             <button className="dashboard-primary-button" type="submit">
-              Cadastrar aluno
+              {editingStudentId !== null ? 'Salvar alterações' : 'Cadastrar aluno'}
             </button>
+
+            {editingStudentId !== null && (
+              <button className="dashboard-secondary-button" onClick={resetStudentForm} type="button">
+                Cancelar edição
+              </button>
+            )}
           </form>
         </article>
 
@@ -238,17 +289,17 @@ export function DashboardPage({
               <span className="dashboard-section-kicker">Carteira ativa</span>
               <h2>Alunos cadastrados</h2>
             </div>
-            <span className="dashboard-count-pill">{students.length}</span>
+            <span className="dashboard-count-pill">{visibleStudents.length}</span>
           </div>
 
-          {students.length === 0 ? (
+          {visibleStudents.length === 0 ? (
             <div className="dashboard-empty-state">
               <span>Nenhum aluno cadastrado</span>
               <p>{'Quando um aluno for criado, ele aparecer\u00e1 aqui em formato de card.'}</p>
             </div>
           ) : (
             <ul className="student-card-list">
-              {students.map((student) => (
+              {visibleStudents.map((student) => (
                 <li className="student-card" key={student.id}>
                   <div className="student-avatar" aria-hidden="true">
                     {getInitials(student.name)}
@@ -261,13 +312,28 @@ export function DashboardPage({
                         <p>{student.goal || 'Objetivo n\u00e3o informado'}</p>
                       </div>
 
-                      <button
-                        className="student-remove-button"
-                        onClick={() => onDeleteStudent(student.id)}
-                        type="button"
-                      >
-                        Remover
-                      </button>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
+                        <button
+                          className="student-remove-button"
+                          onClick={() => handleEditStudent(student)}
+                          style={{
+                            borderColor: '#bfdbfe',
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                          }}
+                          type="button"
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className="student-remove-button"
+                          onClick={() => handleDeleteStudent(student.id)}
+                          type="button"
+                        >
+                          Remover
+                        </button>
+                      </div>
                     </div>
 
                     <div className="student-card-meta">
