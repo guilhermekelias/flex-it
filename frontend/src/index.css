@@ -44,7 +44,41 @@ button {
 .dashboard-page {
   width: min(100%, 980px);
   margin: 0 auto;
-  padding: 16px 14px 32px;
+  padding: 14px 14px calc(104px + env(safe-area-inset-bottom));
+}
+
+.dashboard-app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dashboard-app-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-user-chip {
+  max-width: 120px;
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e3a8a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 8px 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-tab-page {
+  display: grid;
+  gap: 12px;
 }
 
 .dashboard-hero {
@@ -70,6 +104,8 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  color: #0f172a;
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -84,12 +120,11 @@ button {
   color: #1e3a8a;
 }
 
-.dashboard-logout-compact,
-.dashboard-secondary-button {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+.dashboard-logout-compact {
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: #ffffff;
+  color: #334155;
   font-size: 0.9rem;
   font-weight: 700;
   padding: 9px 13px;
@@ -98,9 +133,8 @@ button {
     transform 160ms ease;
 }
 
-.dashboard-logout-compact:hover,
-.dashboard-secondary-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+.dashboard-logout-compact:hover {
+  background: #f1f5f9;
   transform: translateY(-1px);
 }
 
@@ -145,9 +179,8 @@ button {
 
 .dashboard-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin: 12px 0;
 }
 
 .dashboard-stat {
@@ -186,8 +219,16 @@ button {
   border-top: 4px solid #1e3a8a;
 }
 
+.dashboard-stat-green {
+  border-top: 4px solid #16a34a;
+}
+
 .dashboard-stat-amber {
-  border-top: 4px solid #93c5fd;
+  border-top: 4px solid #f59e0b;
+}
+
+.dashboard-stat-rose {
+  border-top: 4px solid #e11d48;
 }
 
 .dashboard-content-grid {
@@ -205,6 +246,31 @@ button {
 
 .dashboard-section-heading {
   margin-bottom: 16px;
+}
+
+.dashboard-page-heading {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-page-heading h1,
+.dashboard-coming-soon-panel h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.dashboard-page-heading p,
+.dashboard-coming-soon-panel p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .dashboard-section-heading-row {
@@ -455,13 +521,120 @@ button {
 
 .dashboard-secondary-button {
   border: 1px solid #cbd5e1;
+  border-radius: 8px;
   background: #ffffff;
   color: #334155;
+  font-size: 0.9rem;
+  font-weight: 800;
+  padding: 9px 13px;
   box-shadow: none;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 .dashboard-secondary-button:hover {
   background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.dashboard-coming-soon-panel {
+  display: grid;
+  min-height: 320px;
+  align-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(22, 163, 74, 0.12), rgba(37, 99, 235, 0.08)),
+    #ffffff;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-coming-soon-badge {
+  width: fit-content;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+.bottom-navigation {
+  position: fixed;
+  right: 12px;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  left: 12px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  width: min(calc(100% - 24px), 520px);
+  min-height: 74px;
+  margin: 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 8px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(16px);
+}
+
+.bottom-navigation-item {
+  display: grid;
+  min-width: 0;
+  min-height: 58px;
+  place-items: center;
+  gap: 3px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+  padding: 6px 2px;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.bottom-navigation-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.bottom-navigation-item-active {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.bottom-navigation-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+}
+
+.bottom-navigation-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
+.bottom-navigation-item span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 359px) {
@@ -488,11 +661,26 @@ button {
   .student-remove-button {
     justify-self: start;
   }
+
+  .bottom-navigation {
+    right: 8px;
+    left: 8px;
+    width: min(calc(100% - 16px), 520px);
+    padding: 7px;
+  }
+
+  .bottom-navigation-item {
+    font-size: 0.62rem;
+  }
 }
 
 @media (min-width: 720px) {
   .dashboard-page {
-    padding: 28px 24px 44px;
+    padding: 24px 24px calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-app-header {
+    margin-bottom: 18px;
   }
 
   .dashboard-hero {
@@ -504,8 +692,8 @@ button {
   }
 
   .dashboard-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-    margin: 16px 0;
   }
 
   .dashboard-stat {
@@ -540,5 +728,18 @@ button {
   .dashboard-secondary-button {
     width: auto;
     min-width: 140px;
+  }
+
+  .dashboard-page-heading {
+    padding: 18px;
+  }
+
+  .dashboard-page-heading h1,
+  .dashboard-coming-soon-panel h1 {
+    font-size: 1.9rem;
+  }
+
+  .bottom-navigation {
+    bottom: 18px;
   }
 }
