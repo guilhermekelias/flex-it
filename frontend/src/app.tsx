@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { LoginPage } from './components/LoginPage';
 import { DashboardPage } from './components/DashboardPage';
+import { StudentPortal } from './components/StudentPortal';
 import {
   ApiUnauthorizedError,
   createStudent as createStudentRequest,
@@ -15,6 +16,10 @@ import {
 
 const AUTH_USER_STORAGE_KEY = 'flexit_user';
 const AUTH_TOKEN_STORAGE_KEY = 'flexit_token';
+
+function getUserExperience(user: User) {
+  return user.role === 'student' ? 'student' : 'professional';
+}
 
 export function App() {
   const [email, setEmail] = useState('');
@@ -37,9 +42,16 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (loggedUser) {
-      fetchStudents();
+    if (!loggedUser) {
+      return;
     }
+
+    if (getUserExperience(loggedUser) === 'professional') {
+      fetchStudents();
+      return;
+    }
+
+    setStudents([]);
   }, [loggedUser]);
 
   const clearSession = (nextMessage = '') => {
@@ -129,6 +141,10 @@ export function App() {
   };
 
   if (loggedUser) {
+    if (getUserExperience(loggedUser) === 'student') {
+      return <StudentPortal user={loggedUser} onLogout={handleLogout} />;
+    }
+
     return (
       <DashboardPage
         user={loggedUser}
