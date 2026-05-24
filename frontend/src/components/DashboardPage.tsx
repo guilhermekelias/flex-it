@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
+import { StudentDetail } from './StudentDetail';
 
 type User = {
   id: number;
@@ -220,10 +221,18 @@ export function DashboardPage({
   const [goal, setGoal] = useState('');
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
   const [visibleStudents, setVisibleStudents] = useState<Student[]>(students);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedMetricId, setSelectedMetricId] = useState(metricSnapshots[0].id);
 
   useEffect(() => {
     setVisibleStudents(students);
+    setSelectedStudentId((currentStudentId) => {
+      if (currentStudentId === null) {
+        return null;
+      }
+
+      return students.some((student) => student.id === currentStudentId) ? currentStudentId : null;
+    });
   }, [students]);
 
   const resetStudentForm = () => {
@@ -248,6 +257,15 @@ export function DashboardPage({
     if (editingStudentId === id) {
       resetStudentForm();
     }
+
+    if (selectedStudentId === id) {
+      setSelectedStudentId(null);
+    }
+  };
+
+  const handleViewStudentDetails = (studentId: number) => {
+    resetStudentForm();
+    setSelectedStudentId(studentId);
   };
 
   const handleSubmit = async (e: JSX.TargetedEvent<HTMLFormElement, Event>) => {
@@ -307,6 +325,11 @@ export function DashboardPage({
     },
   ];
 
+  const selectedStudent =
+    selectedStudentId !== null
+      ? visibleStudents.find((student) => student.id === selectedStudentId) ?? null
+      : null;
+
   const renderHomeTab = () => (
     <section className="dashboard-tab-page" aria-labelledby="home-title">
       <header className="dashboard-hero">
@@ -355,8 +378,17 @@ export function DashboardPage({
     </section>
   );
 
-  const renderStudentsTab = () => (
-    <section className="dashboard-tab-page" aria-labelledby="students-title">
+  const renderStudentsTab = () => {
+    if (selectedStudent) {
+      return (
+        <section className="dashboard-tab-page" aria-labelledby="student-detail-title">
+          <StudentDetail student={selectedStudent} onBack={() => setSelectedStudentId(null)} />
+        </section>
+      );
+    }
+
+    return (
+      <section className="dashboard-tab-page" aria-labelledby="students-title">
       <div className="dashboard-page-heading">
         <span className="dashboard-section-kicker">Carteira de acompanhamento</span>
         <h1 id="students-title">Alunos</h1>
@@ -456,7 +488,15 @@ export function DashboardPage({
                         <p>{student.goal || 'Objetivo n\u00e3o informado'}</p>
                       </div>
 
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-end' }}>
+                      <div className="student-card-actions">
+                        <button
+                          className="student-detail-button"
+                          onClick={() => handleViewStudentDetails(student.id)}
+                          type="button"
+                        >
+                          Ver detalhes
+                        </button>
+
                         <button
                           className="student-remove-button"
                           onClick={() => handleEditStudent(student)}
@@ -492,7 +532,8 @@ export function DashboardPage({
         </article>
       </section>
     </section>
-  );
+    );
+  };
 
   const renderWorkoutsTab = () => (
     <section className="dashboard-tab-page" aria-labelledby="workouts-title">

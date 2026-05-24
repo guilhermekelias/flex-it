@@ -628,6 +628,32 @@ button {
   line-height: 1.35;
 }
 
+.student-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.student-detail-button {
+  flex: 0 0 auto;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 7px 9px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.student-detail-button:hover {
+  border-color: #86efac;
+  background: #dcfce7;
+}
+
 .student-remove-button {
   flex: 0 0 auto;
   border: 1px solid #f1c7c7;
@@ -663,6 +689,249 @@ button {
   font-weight: 700;
   padding: 5px 8px;
   overflow-wrap: anywhere;
+}
+
+.student-detail-view {
+  display: grid;
+  gap: 12px;
+}
+
+.student-detail-back-button {
+  width: fit-content;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+  padding: 10px 12px;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.student-detail-back-button:hover {
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.student-detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(255, 255, 255, 0) 64%),
+    #ffffff;
+  padding: 16px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.student-detail-avatar-large {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.22);
+}
+
+.student-detail-hero-content {
+  min-width: 0;
+}
+
+.student-detail-hero h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.student-detail-hero p {
+  margin: 7px 0 0;
+  color: #475569;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.student-detail-info-grid,
+.student-detail-metric-grid,
+.student-detail-nutrition-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.student-detail-info-grid {
+  grid-template-columns: 1fr;
+}
+
+.student-detail-info-grid article {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.07);
+}
+
+.student-detail-metric-grid div,
+.student-detail-nutrition-grid div {
+  min-width: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.student-detail-info-grid span,
+.student-detail-metric-grid span,
+.student-detail-nutrition-grid span,
+.student-detail-card-meta span,
+.student-detail-progress span {
+  display: block;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.student-detail-info-grid strong,
+.student-detail-metric-grid strong,
+.student-detail-nutrition-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.student-detail-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.student-detail-card {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.student-detail-card-workout {
+  border-top: 4px solid #2563eb;
+}
+
+.student-detail-card-diet {
+  border-top: 4px solid #16a34a;
+}
+
+.student-detail-card-metrics {
+  border-top: 4px solid #e11d48;
+}
+
+.student-detail-card-message {
+  border-top: 4px solid #f59e0b;
+}
+
+.student-detail-card-heading h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.student-detail-card-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.student-detail-card-meta span {
+  overflow: hidden;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 8px 7px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-detail-progress {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.student-detail-progress div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-detail-progress strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.student-detail-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.student-detail-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+}
+
+.student-detail-metric-grid,
+.student-detail-nutrition-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.student-detail-nutrition-grid div:nth-child(1) {
+  background: #eff6ff;
+}
+
+.student-detail-nutrition-grid div:nth-child(2) {
+  background: #f0fdf4;
+}
+
+.student-detail-nutrition-grid div:nth-child(3) {
+  background: #fff7ed;
+}
+
+.student-detail-note-list {
+  display: grid;
+  gap: 9px;
+}
+
+.student-detail-note-list p {
+  margin: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 11px 12px;
 }
 
 .dashboard-user-panel {
@@ -1282,6 +1551,19 @@ button {
     display: grid;
   }
 
+  .student-card-actions {
+    justify-content: flex-start;
+  }
+
+  .student-detail-hero {
+    align-items: flex-start;
+  }
+
+  .student-detail-avatar-large {
+    width: 54px;
+    height: 54px;
+  }
+
   .feature-summary-card,
   .metric-card {
     padding: 10px 8px;
@@ -1293,11 +1575,15 @@ button {
   }
 
   .feature-meta-grid,
-  .nutrition-macro-grid {
+  .nutrition-macro-grid,
+  .student-detail-card-meta,
+  .student-detail-metric-grid,
+  .student-detail-nutrition-grid {
     gap: 5px;
   }
 
-  .feature-meta-grid span {
+  .feature-meta-grid span,
+  .student-detail-card-meta span {
     font-size: 0.68rem;
     padding: 7px 5px;
   }
@@ -1384,6 +1670,24 @@ button {
 
   .dashboard-page-heading {
     padding: 18px;
+  }
+
+  .student-detail-hero {
+    padding: 18px;
+  }
+
+  .student-detail-hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .student-detail-info-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .student-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .feature-summary-grid {
