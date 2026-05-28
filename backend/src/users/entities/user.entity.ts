@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Student } from '../../students/entities/student.entity';
 
 export enum UserRole {
   PROFESSIONAL = 'professional',
@@ -25,4 +26,7 @@ export class User {
     default: UserRole.STUDENT,
   })
   role: UserRole;
+
+  @OneToMany(() => Student, (student) => student.professional)
+  students: Student[];
 }
