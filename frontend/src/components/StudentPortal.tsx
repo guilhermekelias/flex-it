@@ -1,8 +1,17 @@
-import type { User } from '../services/api';
+import { useEffect, useState } from 'preact/hooks';
+import {
+  ApiRequestError,
+  ApiUnauthorizedError,
+  getMyObservations,
+  type Observation,
+  type User,
+} from '../services/api';
+import { formatObservationDate } from '../utils/formatObservationDate';
 
 type StudentPortalProps = {
   user: User;
   onLogout: () => void;
+  onSessionExpired: () => void;
 };
 
 const currentWorkout = {
@@ -28,17 +37,61 @@ const mainMetrics = [
   { label: 'Massa magra', value: '54,6 kg', detail: 'estavel' },
 ];
 
-const professionalNotes = [
-  'Priorize aquecimento de quadril antes do treino de inferiores.',
-  'Envie uma observacao apos o treino de hoje se sentir dor ou fadiga acima do normal.',
-];
-
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
 }
 
-export function StudentPortal({ user, onLogout }: StudentPortalProps) {
+export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
   const firstName = getFirstName(user.name);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [isLoadingObservations, setIsLoadingObservations] = useState(false);
+  const [observationError, setObservationError] = useState('');
+
+  useEffect(() => {
+    let isCurrentUser = true;
+
+    const loadObservations = async () => {
+      setIsLoadingObservations(true);
+      setObservationError('');
+
+      try {
+        const data = await getMyObservations();
+
+        if (isCurrentUser) {
+          setObservations(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentUser) {
+          if (error instanceof ApiRequestError && error.status === 404) {
+            setObservationError('Nenhum cadastro de aluno foi encontrado para este usuario.');
+          } else if (error instanceof ApiRequestError && error.status === 403) {
+            setObservationError(
+              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+            );
+          } else {
+            setObservationError('Nao foi possivel carregar suas observacoes.');
+          }
+        }
+      } finally {
+        if (isCurrentUser) {
+          setIsLoadingObservations(false);
+        }
+      }
+    };
+
+    loadObservations();
+
+    return () => {
+      isCurrentUser = false;
+    };
+  }, [user.email]);
 
   return (
     <div className="student-portal-shell">
@@ -143,9 +196,20 @@ export function StudentPortal({ user, onLogout }: StudentPortalProps) {
             </div>
 
             <div className="student-portal-note-list">
-              {professionalNotes.map((note) => (
-                <p key={note}>{note}</p>
-              ))}
+              {isLoadingObservations ? (
+                <p>Carregando observacoes...</p>
+              ) : observationError ? (
+                <p>{observationError}</p>
+              ) : observations.length === 0 ? (
+                <p>Nenhuma observacao enviada pelo profissional ainda.</p>
+              ) : (
+                observations.map((observation) => (
+                  <article className="student-portal-note-item" key={observation.id}>
+                    <p>{observation.message}</p>
+                    <span>{formatObservationDate(observation.createdAt)}</span>
+                  </article>
+                ))
+              )}
             </div>
           </article>
         </section>

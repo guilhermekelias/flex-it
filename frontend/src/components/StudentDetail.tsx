@@ -1,3 +1,13 @@
+import type { JSX } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
+import {
+  ApiUnauthorizedError,
+  createStudentObservation,
+  getStudentObservations,
+  type Observation,
+} from '../services/api';
+import { formatObservationDate } from '../utils/formatObservationDate';
+
 type StudentDetailStudent = {
   id: number;
   name: string;
@@ -9,6 +19,7 @@ type StudentDetailStudent = {
 type StudentDetailProps = {
   student: StudentDetailStudent;
   onBack: () => void;
+  onSessionExpired: () => void;
 };
 
 function getInitials(name: string) {
@@ -30,8 +41,82 @@ function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
 }
 
-export function StudentDetail({ student, onBack }: StudentDetailProps) {
+export function StudentDetail({ student, onBack, onSessionExpired }: StudentDetailProps) {
   const displayGoal = getDisplayGoal(student.goal);
+  const [observations, setObservations] = useState<Observation[]>([]);
+  const [observationMessage, setObservationMessage] = useState('');
+  const [observationFeedback, setObservationFeedback] = useState('');
+  const [isLoadingObservations, setIsLoadingObservations] = useState(false);
+  const [isSavingObservation, setIsSavingObservation] = useState(false);
+
+  useEffect(() => {
+    let isCurrentStudent = true;
+
+    const loadObservations = async () => {
+      setIsLoadingObservations(true);
+      setObservationFeedback('');
+
+      try {
+        const data = await getStudentObservations(student.id);
+
+        if (isCurrentStudent) {
+          setObservations(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentStudent) {
+          setObservationFeedback('Nao foi possivel carregar as observacoes.');
+        }
+      } finally {
+        if (isCurrentStudent) {
+          setIsLoadingObservations(false);
+        }
+      }
+    };
+
+    loadObservations();
+
+    return () => {
+      isCurrentStudent = false;
+    };
+  }, [student.id]);
+
+  const handleCreateObservation = async (event: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    event.preventDefault();
+
+    const message = observationMessage.trim();
+
+    if (!message) {
+      setObservationFeedback('Digite uma observacao antes de salvar.');
+      return;
+    }
+
+    setIsSavingObservation(true);
+    setObservationFeedback('');
+
+    try {
+      const newObservation = await createStudentObservation(student.id, { message });
+      setObservations((currentObservations) => [newObservation, ...currentObservations]);
+      setObservationMessage('');
+      setObservationFeedback('Observacao registrada.');
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setObservationFeedback('Nao foi possivel salvar a observacao.');
+    } finally {
+      setIsSavingObservation(false);
+    }
+  };
 
   return (
     <section className="student-detail-view" aria-labelledby="student-detail-title">
@@ -140,14 +225,46 @@ export function StudentDetail({ student, onBack }: StudentDetailProps) {
             <h2>{'Observa\u00e7\u00f5es'}</h2>
           </div>
 
+          <form className="student-detail-observation-form" onSubmit={handleCreateObservation}>
+            <label>
+              <span>Nova observacao</span>
+              <textarea
+                className="student-detail-observation-textarea"
+                onInput={(event) =>
+                  setObservationMessage((event.target as HTMLTextAreaElement).value)
+                }
+                placeholder="Registre uma orientacao simples para este aluno."
+                rows={4}
+                value={observationMessage}
+              />
+            </label>
+
+            <button
+              className="dashboard-primary-button"
+              disabled={isSavingObservation}
+              type="submit"
+            >
+              {isSavingObservation ? 'Salvando...' : 'Salvar observacao'}
+            </button>
+
+            {observationFeedback && (
+              <p className="student-detail-observation-feedback">{observationFeedback}</p>
+            )}
+          </form>
+
           <div className="student-detail-note-list">
-            <p>
-              Aluno em acompanhamento inicial. Reforcar registro de treinos concluidos e retorno
-              semanal sobre dificuldade das series.
-            </p>
-            <p>
-              Proxima conversa sugerida para revisar energia, sono e aderencia ao plano alimentar.
-            </p>
+            {isLoadingObservations ? (
+              <p>Carregando observacoes...</p>
+            ) : observations.length === 0 ? (
+              <p>Nenhuma observacao registrada para este aluno.</p>
+            ) : (
+              observations.map((observation) => (
+                <article className="student-detail-note-item" key={observation.id}>
+                  <p>{observation.message}</p>
+                  <span>{formatObservationDate(observation.createdAt)}</span>
+                </article>
+              ))
+            )}
           </div>
         </article>
       </section>
