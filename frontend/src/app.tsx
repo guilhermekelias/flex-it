@@ -62,9 +62,13 @@ export function App() {
     setMessage(nextMessage);
   };
 
+  const handleSessionExpired = () => {
+    clearSession('Sessao expirada. Faca login novamente.');
+  };
+
   const handleApiError = (error: unknown) => {
     if (error instanceof ApiUnauthorizedError) {
-      clearSession('Sessao expirada. Faca login novamente.');
+      handleSessionExpired();
       return;
     }
 
@@ -142,7 +146,13 @@ export function App() {
 
   if (loggedUser) {
     if (getUserExperience(loggedUser) === 'student') {
-      return <StudentPortal user={loggedUser} onLogout={handleLogout} />;
+      return (
+        <StudentPortal
+          user={loggedUser}
+          onLogout={handleLogout}
+          onSessionExpired={handleSessionExpired}
+        />
+      );
     }
 
     return (
@@ -152,6 +162,7 @@ export function App() {
         onCreateStudent={createStudent}
         onUpdateStudent={updateStudent}
         onDeleteStudent={deleteStudent}
+        onSessionExpired={handleSessionExpired}
         onLogout={handleLogout}
       />
     );

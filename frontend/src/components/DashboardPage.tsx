@@ -24,6 +24,7 @@ type DashboardPageProps = {
   onCreateStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   onUpdateStudent: (id: number, student: Omit<Student, 'id'>) => Promise<Student>;
   onDeleteStudent: (id: number) => Promise<void>;
+  onSessionExpired: () => void;
   onLogout: () => void;
 };
 
@@ -212,6 +213,7 @@ export function DashboardPage({
   onCreateStudent,
   onUpdateStudent,
   onDeleteStudent,
+  onSessionExpired,
   onLogout,
 }: DashboardPageProps) {
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
@@ -382,7 +384,11 @@ export function DashboardPage({
     if (selectedStudent) {
       return (
         <section className="dashboard-tab-page" aria-labelledby="student-detail-title">
-          <StudentDetail student={selectedStudent} onBack={() => setSelectedStudentId(null)} />
+          <StudentDetail
+            student={selectedStudent}
+            onBack={() => setSelectedStudentId(null)}
+            onSessionExpired={onSessionExpired}
+          />
         </section>
       );
     }

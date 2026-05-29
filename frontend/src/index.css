@@ -22,7 +22,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -924,7 +925,59 @@ button {
   gap: 9px;
 }
 
-.student-detail-note-list p {
+.student-detail-observation-form {
+  display: grid;
+  gap: 10px;
+}
+
+.student-detail-observation-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.student-detail-observation-form label span {
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.student-detail-observation-textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  background: #f8fafc;
+  color: #0f172a;
+  padding: 12px 13px;
+  line-height: 1.45;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.student-detail-observation-textarea::placeholder {
+  color: #94a3b8;
+}
+
+.student-detail-observation-textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
+}
+
+.student-detail-observation-feedback {
+  margin: 0;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.student-detail-note-list > p,
+.student-detail-note-item {
   margin: 0;
   border-radius: 8px;
   background: #f8fafc;
@@ -932,6 +985,22 @@ button {
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 11px 12px;
+}
+
+.student-detail-note-item {
+  display: grid;
+  gap: 7px;
+}
+
+.student-detail-note-item p {
+  padding: 0;
+}
+
+.student-detail-note-item span,
+.student-portal-note-item span {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 
 .dashboard-user-panel {
@@ -1735,7 +1804,8 @@ button {
   gap: 9px;
 }
 
-.student-portal-note-list p {
+.student-portal-note-list > p,
+.student-portal-note-item {
   margin: 0;
   border-radius: 8px;
   background: #f8fafc;
@@ -1743,6 +1813,15 @@ button {
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 11px 12px;
+}
+
+.student-portal-note-item {
+  display: grid;
+  gap: 7px;
+}
+
+.student-portal-note-item p {
+  padding: 0;
 }
 
 .bottom-navigation {

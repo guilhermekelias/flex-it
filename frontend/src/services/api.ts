@@ -15,6 +15,18 @@ export type Student = {
 
 export type StudentPayload = Omit<Student, 'id'>;
 
+export type Observation = {
+  id: number;
+  message: string;
+  studentId: number;
+  professionalId: number;
+  createdAt: string;
+};
+
+export type ObservationPayload = {
+  message: string;
+};
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -37,6 +49,16 @@ export class ApiUnauthorizedError extends Error {
   constructor() {
     super('Sessao expirada ou nao autorizada');
     this.name = 'ApiUnauthorizedError';
+  }
+}
+
+export class ApiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiRequestError';
   }
 }
 
@@ -69,11 +91,32 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   }
 
   if (!response.ok) {
-    throw new Error('Erro ao comunicar com a API');
+    throw new ApiRequestError(response.status, await parseErrorMessage(response));
   }
 
   const responseBody = await response.text();
   return (responseBody ? JSON.parse(responseBody) : undefined) as T;
+}
+
+async function parseErrorMessage(response: Response): Promise<string> {
+  const fallbackMessage = 'Erro ao comunicar com a API';
+  const responseBody = await response.text();
+
+  if (!responseBody) {
+    return fallbackMessage;
+  }
+
+  try {
+    const parsedBody = JSON.parse(responseBody) as { message?: string | string[] };
+
+    if (Array.isArray(parsedBody.message)) {
+      return parsedBody.message.join(' ');
+    }
+
+    return parsedBody.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
 }
 
 export function login(credentials: LoginPayload): Promise<LoginResponse> {
@@ -109,6 +152,31 @@ export function updateStudent(id: number, studentData: StudentPayload): Promise<
 export function deleteStudent(id: number): Promise<void> {
   return request<void>(`/students/${id}`, {
     method: 'DELETE',
+    authenticated: true,
+  });
+}
+
+export function getStudentObservations(studentId: number): Promise<Observation[]> {
+  return request<Observation[]>(`/students/${studentId}/observations`, {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function createStudentObservation(
+  studentId: number,
+  observationData: ObservationPayload,
+): Promise<Observation> {
+  return request<Observation>(`/students/${studentId}/observations`, {
+    method: 'POST',
+    authenticated: true,
+    body: JSON.stringify(observationData),
+  });
+}
+
+export function getMyObservations(): Promise<Observation[]> {
+  return request<Observation[]>('/observations/me', {
+    method: 'GET',
     authenticated: true,
   });
 }
