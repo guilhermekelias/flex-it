@@ -8,6 +8,7 @@ import { StudentsModule } from './students/students.module';
 import { ObservationsModule } from './observations/observations.module';
 import { WorkoutsModule } from './workouts/workouts.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { NutritionPlansModule } from './nutrition-plans/nutrition-plans.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MetricsModule } from './metrics/metrics.module';
     ObservationsModule,
     WorkoutsModule,
     MetricsModule,
+    NutritionPlansModule,
   ],
   controllers: [AppController],
   providers: [AppService],
