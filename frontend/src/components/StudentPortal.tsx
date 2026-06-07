@@ -2,9 +2,11 @@ import { useEffect, useState } from 'preact/hooks';
 import {
   ApiRequestError,
   ApiUnauthorizedError,
+  getMyWorkouts,
   getMyObservations,
   type Observation,
   type User,
+  type Workout,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
 
@@ -12,15 +14,6 @@ type StudentPortalProps = {
   user: User;
   onLogout: () => void;
   onSessionExpired: () => void;
-};
-
-const currentWorkout = {
-  title: 'Treino A - Forca e mobilidade',
-  focus: 'Inferiores e core',
-  duration: '58 min',
-  exercises: '8 exercicios',
-  nextSession: 'Hoje, 18:30',
-  progress: 68,
 };
 
 const currentDiet = {
@@ -43,9 +36,58 @@ function getFirstName(name: string) {
 
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
   const firstName = getFirstName(user.name);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
+  const [workoutError, setWorkoutError] = useState('');
   const [observations, setObservations] = useState<Observation[]>([]);
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [observationError, setObservationError] = useState('');
+
+  useEffect(() => {
+    let isCurrentUser = true;
+
+    const loadWorkouts = async () => {
+      setIsLoadingWorkouts(true);
+      setWorkoutError('');
+
+      try {
+        const data = await getMyWorkouts();
+
+        if (isCurrentUser) {
+          setWorkouts(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentUser) {
+          if (error instanceof ApiRequestError && error.status === 404) {
+            setWorkoutError('Nenhum cadastro de aluno foi encontrado para este usuario.');
+          } else if (error instanceof ApiRequestError && error.status === 403) {
+            setWorkoutError(
+              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+            );
+          } else {
+            setWorkoutError('Nao foi possivel carregar seus treinos.');
+          }
+        }
+      } finally {
+        if (isCurrentUser) {
+          setIsLoadingWorkouts(false);
+        }
+      }
+    };
+
+    loadWorkouts();
+
+    return () => {
+      isCurrentUser = false;
+    };
+  }, [user.email]);
 
   useEffect(() => {
     let isCurrentUser = true;
@@ -93,6 +135,17 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     };
   }, [user.email]);
 
+  const currentWorkout = workouts[0] ?? null;
+  const workoutProgress = workouts.length > 0 ? 100 : 0;
+  const workoutTitle = isLoadingWorkouts
+    ? 'Carregando treinos...'
+    : currentWorkout
+      ? currentWorkout.name
+      : 'Nenhum treino cadastrado';
+  const workoutNote = currentWorkout
+    ? `Atualizado em ${formatObservationDate(currentWorkout.updatedAt)}`
+    : workoutError || 'Seu profissional ainda nao cadastrou treinos.';
+
   return (
     <div className="student-portal-shell">
       <main className="student-portal-page">
@@ -124,27 +177,52 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
         <section className="student-portal-grid" aria-label="Painel do aluno">
           <article className="student-portal-card student-portal-card-workout">
             <div className="student-portal-card-heading">
-              <span className="student-portal-kicker">Treino atual</span>
-              <h2>{currentWorkout.title}</h2>
+              <span className="student-portal-kicker">Treinos atuais</span>
+              <h2>{workoutTitle}</h2>
             </div>
 
             <div className="student-portal-info-grid">
-              <span>{currentWorkout.focus}</span>
-              <span>{currentWorkout.duration}</span>
-              <span>{currentWorkout.exercises}</span>
+              <span>{currentWorkout ? currentWorkout.type : 'Aguardando plano'}</span>
+              <span>{currentWorkout ? `${currentWorkout.durationMinutes} min` : '-- min'}</span>
+              <span>
+                {currentWorkout ? `${currentWorkout.exercisesCount} exercicios` : '-- exercicios'}
+              </span>
             </div>
 
             <div className="student-portal-progress">
               <div>
-                <span>Conclusao semanal</span>
-                <strong>{currentWorkout.progress}%</strong>
+                <span>Treinos cadastrados</span>
+                <strong>{workouts.length}</strong>
               </div>
               <div className="student-portal-progress-track" aria-hidden="true">
-                <span style={{ width: `${currentWorkout.progress}%` }} />
+                <span style={{ width: `${workoutProgress}%` }} />
               </div>
             </div>
 
-            <p className="student-portal-card-note">Proxima sessao: {currentWorkout.nextSession}</p>
+            <p className="student-portal-card-note">{workoutNote}</p>
+
+            <div className="student-portal-note-list">
+              {isLoadingWorkouts ? (
+                <p>Carregando treinos...</p>
+              ) : workoutError ? (
+                <p>{workoutError}</p>
+              ) : workouts.length === 0 ? (
+                <p>Nenhum treino enviado pelo profissional ainda.</p>
+              ) : (
+                workouts.map((workout) => (
+                  <article className="student-portal-note-item" key={workout.id}>
+                    <p>
+                      <strong>{workout.name}</strong>
+                      {workout.description ? ` - ${workout.description}` : ''}
+                    </p>
+                    <span>
+                      {workout.type} | {workout.durationMinutes} min |{' '}
+                      {workout.exercisesCount} exercicios
+                    </span>
+                  </article>
+                ))
+              )}
+            </div>
           </article>
 
           <article className="student-portal-card student-portal-card-diet">
