@@ -50,6 +50,31 @@ export type WorkoutPayload = {
 
 export type WorkoutUpdatePayload = Partial<WorkoutPayload>;
 
+export type Metric = {
+  id: number;
+  weightKg: number | null;
+  heightCm: number | null;
+  bodyFatPercentage: number | null;
+  muscleMassKg: number | null;
+  notes: string | null;
+  recordedAt: string;
+  studentId: number;
+  professionalId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MetricPayload = {
+  weightKg?: number | null;
+  heightCm?: number | null;
+  bodyFatPercentage?: number | null;
+  muscleMassKg?: number | null;
+  notes?: string | null;
+  recordedAt?: string;
+};
+
+export type MetricUpdatePayload = Partial<MetricPayload>;
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -250,6 +275,57 @@ export function deleteStudentWorkout(studentId: number, workoutId: number): Prom
 
 export function getMyWorkouts(): Promise<Workout[]> {
   return request<Workout[]>('/workouts/me', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getMetrics(): Promise<Metric[]> {
+  return request<Metric[]>('/metrics', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getStudentMetrics(studentId: number): Promise<Metric[]> {
+  return request<Metric[]>(`/students/${studentId}/metrics`, {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function createStudentMetric(
+  studentId: number,
+  metricData: MetricPayload,
+): Promise<Metric> {
+  return request<Metric>(`/students/${studentId}/metrics`, {
+    method: 'POST',
+    authenticated: true,
+    body: JSON.stringify(metricData),
+  });
+}
+
+export function updateStudentMetric(
+  studentId: number,
+  metricId: number,
+  metricData: MetricUpdatePayload,
+): Promise<Metric> {
+  return request<Metric>(`/students/${studentId}/metrics/${metricId}`, {
+    method: 'PUT',
+    authenticated: true,
+    body: JSON.stringify(metricData),
+  });
+}
+
+export function deleteStudentMetric(studentId: number, metricId: number): Promise<void> {
+  return request<void>(`/students/${studentId}/metrics/${metricId}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
+}
+
+export function getMyMetrics(): Promise<Metric[]> {
+  return request<Metric[]>('/metrics/me', {
     method: 'GET',
     authenticated: true,
   });
