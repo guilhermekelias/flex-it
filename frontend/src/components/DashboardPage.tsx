@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { ApiUnauthorizedError, getWorkouts, type Workout } from '../services/api';
+import { ApiUnauthorizedError, getMetrics, getWorkouts, type Metric, type Workout } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
 import { StudentDetail } from './StudentDetail';
@@ -43,25 +43,6 @@ type DietPlan = {
   fats: string;
 };
 
-type MetricSnapshot = {
-  id: number;
-  studentName: string;
-  initials: string;
-  updatedAt: string;
-  weight: string;
-  bodyFat: string;
-  muscleMass: string;
-  imc: string;
-  trend: string;
-  points: number[];
-  measurements: Array<{
-    label: string;
-    value: string;
-    change: string;
-    tone: 'positive' | 'negative' | 'neutral';
-  }>;
-};
-
 const dietPlans: DietPlan[] = [
   {
     id: 1,
@@ -101,43 +82,6 @@ const dietPlans: DietPlan[] = [
   },
 ];
 
-const metricSnapshots: MetricSnapshot[] = [
-  {
-    id: 1,
-    studentName: 'Ana Silva',
-    initials: 'AS',
-    updatedAt: '10/05/2026',
-    weight: '68,9 kg',
-    bodyFat: '24,5%',
-    muscleMass: '52,1 kg',
-    imc: '25,3',
-    trend: '-3,1 kg em 10 semanas',
-    points: [34, 42, 50, 58, 68, 78],
-    measurements: [
-      { label: 'Cintura', value: '72 cm', change: '-3 cm', tone: 'positive' },
-      { label: 'Quadril', value: '98 cm', change: '-2 cm', tone: 'positive' },
-      { label: 'Braco direito', value: '32 cm', change: '+1 cm', tone: 'positive' },
-    ],
-  },
-  {
-    id: 2,
-    studentName: 'Carlos Santos',
-    initials: 'CS',
-    updatedAt: '08/05/2026',
-    weight: '84,2 kg',
-    bodyFat: '18,8%',
-    muscleMass: '66,4 kg',
-    imc: '26,1',
-    trend: '+1,8 kg de massa magra',
-    points: [45, 48, 56, 60, 72, 84],
-    measurements: [
-      { label: 'Peito', value: '104 cm', change: '+2 cm', tone: 'positive' },
-      { label: 'Coxa direita', value: '61 cm', change: '+1 cm', tone: 'positive' },
-      { label: 'Cintura', value: '84 cm', change: '0 cm', tone: 'neutral' },
-    ],
-  },
-];
-
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'profissional';
 }
@@ -174,6 +118,88 @@ function getStudentName(students: Student[], studentId: number) {
   return students.find((student) => student.id === studentId)?.name || 'Aluno nao encontrado';
 }
 
+function formatMetricValue(value: number | null, unit: string) {
+  if (value === null || !Number.isFinite(value)) {
+    return '--';
+  }
+
+  return `${value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  })} ${unit}`;
+}
+
+function calculateBmi(weightKg: number | null, heightCm: number | null) {
+  if (
+    weightKg === null ||
+    heightCm === null ||
+    !Number.isFinite(weightKg) ||
+    !Number.isFinite(heightCm) ||
+    weightKg <= 0 ||
+    heightCm <= 0
+  ) {
+    return '--';
+  }
+
+  const heightMeters = heightCm / 100;
+  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  });
+}
+
+function getMetricsForStudent(metrics: Metric[], studentId: number) {
+  return metrics.filter((metric) => metric.studentId === studentId);
+}
+
+function getWeightTrend(metrics: Metric[]) {
+  const [latestMetric, previousMetric] = metrics.filter((metric) => metric.weightKg !== null);
+
+  if (!latestMetric || !previousMetric || latestMetric.weightKg === null || previousMetric.weightKg === null) {
+    return 'historico em acompanhamento';
+  }
+
+  const difference = latestMetric.weightKg - previousMetric.weightKg;
+
+  if (difference === 0) {
+    return 'peso estavel desde a ultima avaliacao';
+  }
+
+  const formattedDifference = Math.abs(difference).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  });
+
+  return `${difference > 0 ? '+' : '-'}${formattedDifference} kg desde a ultima avaliacao`;
+}
+
+function getMetricChartPoints(metrics: Metric[]) {
+  const weightValues = metrics
+    .slice(0, 6)
+    .reverse()
+    .map((metric) => metric.weightKg)
+    .filter((weightKg): weightKg is number => weightKg !== null && Number.isFinite(weightKg));
+
+  if (weightValues.length === 0) {
+    return [28, 42, 56, 70];
+  }
+
+  if (weightValues.length === 1) {
+    return [50];
+  }
+
+  const minimumWeight = Math.min(...weightValues);
+  const maximumWeight = Math.max(...weightValues);
+
+  if (minimumWeight === maximumWeight) {
+    return weightValues.map(() => 55);
+  }
+
+  return weightValues.map((weightKg) =>
+    Math.round(30 + ((weightKg - minimumWeight) / (maximumWeight - minimumWeight)) * 55),
+  );
+}
+
 export function DashboardPage({
   user,
   students,
@@ -191,10 +217,13 @@ export function DashboardPage({
   const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
   const [visibleStudents, setVisibleStudents] = useState<Student[]>(students);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
-  const [selectedMetricId, setSelectedMetricId] = useState(metricSnapshots[0].id);
+  const [selectedMetricStudentId, setSelectedMetricStudentId] = useState<number | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [workoutsError, setWorkoutsError] = useState('');
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+  const [metricsError, setMetricsError] = useState('');
 
   const fetchWorkouts = async () => {
     setIsLoadingWorkouts(true);
@@ -216,6 +245,26 @@ export function DashboardPage({
     }
   };
 
+  const fetchMetrics = async () => {
+    setIsLoadingMetrics(true);
+    setMetricsError('');
+
+    try {
+      const data = await getMetrics();
+      setMetrics(data);
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setMetricsError('Nao foi possivel carregar as metricas.');
+    } finally {
+      setIsLoadingMetrics(false);
+    }
+  };
+
   useEffect(() => {
     setVisibleStudents(students);
     setSelectedStudentId((currentStudentId) => {
@@ -229,13 +278,36 @@ export function DashboardPage({
 
   useEffect(() => {
     void fetchWorkouts();
+    void fetchMetrics();
   }, []);
 
   useEffect(() => {
     if (activeTab === 'workouts') {
       void fetchWorkouts();
     }
+
+    if (activeTab === 'metrics') {
+      void fetchMetrics();
+    }
   }, [activeTab]);
+
+  useEffect(() => {
+    setSelectedMetricStudentId((currentStudentId) => {
+      if (
+        currentStudentId !== null &&
+        visibleStudents.some((student) => student.id === currentStudentId) &&
+        metrics.some((metric) => metric.studentId === currentStudentId)
+      ) {
+        return currentStudentId;
+      }
+
+      const firstMetricStudent = visibleStudents.find((student) =>
+        metrics.some((metric) => metric.studentId === student.id),
+      );
+
+      return firstMetricStudent?.id ?? null;
+    });
+  }, [metrics, visibleStudents]);
 
   const resetStudentForm = () => {
     setName('');
@@ -321,8 +393,8 @@ export function DashboardPage({
     },
     {
       label: 'M\u00e9tricas',
-      value: '--',
-      helper: 'Em breve',
+      value: isLoadingMetrics ? '...' : metrics.length,
+      helper: metricsError ? 'Erro ao carregar' : 'Registros',
       tone: 'rose',
     },
   ];
@@ -385,6 +457,9 @@ export function DashboardPage({
       return (
         <section className="dashboard-tab-page" aria-labelledby="student-detail-title">
           <StudentDetail
+            onMetricsChanged={() => {
+              void fetchMetrics();
+            }}
             onWorkoutsChanged={() => {
               void fetchWorkouts();
             }}
@@ -735,8 +810,22 @@ export function DashboardPage({
   );
 
   const renderMetricsTab = () => {
-    const selectedMetric =
-      metricSnapshots.find((metric) => metric.id === selectedMetricId) ?? metricSnapshots[0];
+    const studentsWithMetrics = visibleStudents.filter((student) =>
+      metrics.some((metric) => metric.studentId === student.id),
+    );
+    const currentMetricStudentId =
+      selectedMetricStudentId !== null &&
+      studentsWithMetrics.some((student) => student.id === selectedMetricStudentId)
+        ? selectedMetricStudentId
+        : studentsWithMetrics[0]?.id ?? null;
+    const selectedMetricStudent =
+      currentMetricStudentId !== null
+        ? visibleStudents.find((student) => student.id === currentMetricStudentId) ?? null
+        : null;
+    const selectedStudentMetrics =
+      currentMetricStudentId !== null ? getMetricsForStudent(metrics, currentMetricStudentId) : [];
+    const selectedMetric = selectedStudentMetrics[0] ?? null;
+    const chartPoints = getMetricChartPoints(selectedStudentMetrics);
 
     return (
       <section className="dashboard-tab-page" aria-labelledby="metrics-title">
@@ -744,88 +833,195 @@ export function DashboardPage({
           <span className="dashboard-section-kicker">Evolucao corporal</span>
           <h1 id="metrics-title">Metricas</h1>
           <p>
-            Acompanhe peso, composicao corporal e medidas principais com visual inicial para o
-            modulo de evolucao.
+            Acompanhe peso, composicao corporal e medidas principais registradas para seus alunos.
           </p>
         </div>
 
-        <div className="metrics-student-row" aria-label="Selecionar aluno para metricas">
-          {metricSnapshots.map((metric) => (
-            <button
-              className={`metrics-student-chip${
-                selectedMetric.id === metric.id ? ' metrics-student-chip-active' : ''
-              }`}
-              key={metric.id}
-              onClick={() => setSelectedMetricId(metric.id)}
-              type="button"
-            >
-              <span>{metric.initials}</span>
-              {metric.studentName}
-            </button>
-          ))}
-        </div>
-
-        <section className="metrics-card-grid" aria-label={`Metricas de ${selectedMetric.studentName}`}>
-          <article className="metric-card">
-            <span>Peso atual</span>
-            <strong>{selectedMetric.weight}</strong>
-            <small>{selectedMetric.trend}</small>
+        {isLoadingMetrics ? (
+          <article className="feature-card">
+            <p>Carregando metricas...</p>
           </article>
-          <article className="metric-card">
-            <span>Gordura corporal</span>
-            <strong>{selectedMetric.bodyFat}</strong>
-            <small>queda consistente</small>
+        ) : metricsError ? (
+          <article className="feature-card">
+            <p>{metricsError}</p>
           </article>
-          <article className="metric-card">
-            <span>Massa muscular</span>
-            <strong>{selectedMetric.muscleMass}</strong>
-            <small>ganho monitorado</small>
+        ) : metrics.length === 0 ? (
+          <article className="feature-card">
+            <p>Nenhuma metrica cadastrada ainda.</p>
           </article>
-          <article className="metric-card">
-            <span>IMC</span>
-            <strong>{selectedMetric.imc}</strong>
-            <small>referencia clinica</small>
-          </article>
-        </section>
-
-        <article className="dashboard-panel metrics-chart-panel">
-          <div className="dashboard-section-heading dashboard-section-heading-row">
-            <div>
-              <span className="dashboard-section-kicker">Historico visual</span>
-              <h2>Evolucao do acompanhamento</h2>
+        ) : (
+          <>
+            <div className="metrics-student-row" aria-label="Selecionar aluno para metricas">
+              {studentsWithMetrics.map((student) => (
+                <button
+                  className={`metrics-student-chip${
+                    currentMetricStudentId === student.id ? ' metrics-student-chip-active' : ''
+                  }`}
+                  key={student.id}
+                  onClick={() => setSelectedMetricStudentId(student.id)}
+                  type="button"
+                >
+                  <span>{getInitials(student.name)}</span>
+                  {student.name}
+                </button>
+              ))}
             </div>
-            <span className="feature-status-pill">Atualizado em {selectedMetric.updatedAt}</span>
-          </div>
 
-          <div className="metrics-chart-bars" aria-label="Grafico visual de evolucao mockado">
-            {selectedMetric.points.map((point, index) => (
-              <span
-                className="metrics-chart-bar"
-                key={`${selectedMetric.id}-${point}-${index}`}
-                style={{ height: `${point}%` }}
-              />
-            ))}
-          </div>
-        </article>
+            <section
+              className="metrics-card-grid"
+              aria-label={`Metricas de ${selectedMetricStudent?.name || 'aluno'}`}
+            >
+              <article className="metric-card">
+                <span>Peso atual</span>
+                <strong>{selectedMetric ? formatMetricValue(selectedMetric.weightKg, 'kg') : '--'}</strong>
+                <small>{getWeightTrend(selectedStudentMetrics)}</small>
+              </article>
+              <article className="metric-card">
+                <span>Gordura corporal</span>
+                <strong>
+                  {selectedMetric ? formatMetricValue(selectedMetric.bodyFatPercentage, '%') : '--'}
+                </strong>
+                <small>ultima avaliacao registrada</small>
+              </article>
+              <article className="metric-card">
+                <span>Massa muscular</span>
+                <strong>
+                  {selectedMetric ? formatMetricValue(selectedMetric.muscleMassKg, 'kg') : '--'}
+                </strong>
+                <small>composicao corporal</small>
+              </article>
+              <article className="metric-card">
+                <span>IMC</span>
+                <strong>
+                  {selectedMetric
+                    ? calculateBmi(selectedMetric.weightKg, selectedMetric.heightCm)
+                    : '--'}
+                </strong>
+                <small>calculado por peso e altura</small>
+              </article>
+            </section>
 
-        <article className="dashboard-panel">
-          <div className="dashboard-section-heading">
-            <span className="dashboard-section-kicker">Medidas corporais</span>
-            <h2>Ultimas afericoes</h2>
-          </div>
-
-          <div className="measurement-list">
-            {selectedMetric.measurements.map((measurement) => (
-              <div className="measurement-item" key={measurement.label}>
-                <span>{measurement.label}</span>
-                <strong>{measurement.value}</strong>
-                <small className={`measurement-change measurement-change-${measurement.tone}`}>
-                  {measurement.change}
-                </small>
+            <article className="dashboard-panel metrics-chart-panel">
+              <div className="dashboard-section-heading dashboard-section-heading-row">
+                <div>
+                  <span className="dashboard-section-kicker">Historico visual</span>
+                  <h2>{selectedMetricStudent?.name || 'Aluno selecionado'}</h2>
+                </div>
+                <span className="feature-status-pill">
+                  Atualizado em{' '}
+                  {selectedMetric ? formatObservationDate(selectedMetric.recordedAt) : '--'}
+                </span>
               </div>
-            ))}
-          </div>
-        </article>
+
+              <div className="metrics-chart-bars" aria-label="Historico visual de peso">
+                {chartPoints.map((point, index) => (
+                  <span
+                    className="metrics-chart-bar"
+                    key={`${currentMetricStudentId}-${point}-${index}`}
+                    style={{ height: `${point}%` }}
+                  />
+                ))}
+              </div>
+            </article>
+
+            <article className="dashboard-panel">
+              <div className="dashboard-section-heading">
+                <span className="dashboard-section-kicker">Medidas corporais</span>
+                <h2>Ultimas afericoes</h2>
+              </div>
+
+              <div className="measurement-list">
+                <div className="measurement-item">
+                  <span>Peso</span>
+                  <strong>{selectedMetric ? formatMetricValue(selectedMetric.weightKg, 'kg') : '--'}</strong>
+                  <small className="measurement-change measurement-change-neutral">
+                    {getWeightTrend(selectedStudentMetrics)}
+                  </small>
+                </div>
+                <div className="measurement-item">
+                  <span>Altura</span>
+                  <strong>{selectedMetric ? formatMetricValue(selectedMetric.heightCm, 'cm') : '--'}</strong>
+                  <small className="measurement-change measurement-change-neutral">
+                    dado de referencia
+                  </small>
+                </div>
+                <div className="measurement-item">
+                  <span>Gordura</span>
+                  <strong>
+                    {selectedMetric ? formatMetricValue(selectedMetric.bodyFatPercentage, '%') : '--'}
+                  </strong>
+                  <small className="measurement-change measurement-change-neutral">
+                    composicao
+                  </small>
+                </div>
+                <div className="measurement-item">
+                  <span>Massa muscular</span>
+                  <strong>{selectedMetric ? formatMetricValue(selectedMetric.muscleMassKg, 'kg') : '--'}</strong>
+                  <small className="measurement-change measurement-change-neutral">
+                    composicao
+                  </small>
+                </div>
+                <div className="measurement-item">
+                  <span>IMC</span>
+                  <strong>
+                    {selectedMetric
+                      ? calculateBmi(selectedMetric.weightKg, selectedMetric.heightCm)
+                      : '--'}
+                  </strong>
+                  <small className="measurement-change measurement-change-neutral">
+                    calculado
+                  </small>
+                </div>
+              </div>
+            </article>
+
+            <section className="feature-card-list" aria-label="Historico de metricas">
+              {selectedStudentMetrics.map((metric) => (
+                <article className="feature-card" key={metric.id}>
+                  <div className="feature-card-header">
+                    <div>
+                      <span className="feature-student-name">
+                        {selectedMetricStudent?.name || getStudentName(visibleStudents, metric.studentId)}
+                      </span>
+                      <h2>Avaliacao de {formatObservationDate(metric.recordedAt)}</h2>
+                    </div>
+                    <span className="feature-status-pill">
+                      IMC {calculateBmi(metric.weightKg, metric.heightCm)}
+                    </span>
+                  </div>
+
+                  <div className="feature-meta-grid">
+                    <span>{formatMetricValue(metric.weightKg, 'kg')}</span>
+                    <span>{formatMetricValue(metric.bodyFatPercentage, '%')}</span>
+                    <span>{formatMetricValue(metric.muscleMassKg, 'kg')}</span>
+                  </div>
+
+                  <div className="feature-progress-block">
+                    <div>
+                      <span>Observacoes</span>
+                      <strong>{metric.notes || 'Sem observacoes'}</strong>
+                    </div>
+                  </div>
+
+                  <div className="feature-card-footer">
+                    <span>Atualizado em {formatObservationDate(metric.updatedAt)}</span>
+                    <div>
+                      <button
+                        onClick={() => {
+                          setSelectedStudentId(metric.studentId);
+                          setActiveTab('students');
+                        }}
+                        type="button"
+                      >
+                        Abrir aluno
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </>
+        )}
       </section>
     );
   };

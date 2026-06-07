@@ -2,8 +2,10 @@ import { useEffect, useState } from 'preact/hooks';
 import {
   ApiRequestError,
   ApiUnauthorizedError,
+  getMyMetrics,
   getMyWorkouts,
   getMyObservations,
+  type Metric,
   type Observation,
   type User,
   type Workout,
@@ -24,14 +26,58 @@ const currentDiet = {
   adherence: 82,
 };
 
-const mainMetrics = [
-  { label: 'Peso', value: '72,4 kg', detail: '-1,2 kg no ciclo' },
-  { label: 'Gordura', value: '21,8%', detail: 'queda gradual' },
-  { label: 'Massa magra', value: '54,6 kg', detail: 'estavel' },
-];
-
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
+}
+
+function formatMetricValue(value: number | null, unit: string) {
+  if (value === null || !Number.isFinite(value)) {
+    return '--';
+  }
+
+  return `${value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  })} ${unit}`;
+}
+
+function calculateBmi(weightKg: number | null, heightCm: number | null) {
+  if (
+    weightKg === null ||
+    heightCm === null ||
+    !Number.isFinite(weightKg) ||
+    !Number.isFinite(heightCm) ||
+    weightKg <= 0 ||
+    heightCm <= 0
+  ) {
+    return '--';
+  }
+
+  const heightMeters = heightCm / 100;
+  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  });
+}
+
+function getMetricSummary(metric: Metric | null) {
+  return [
+    {
+      label: 'Peso',
+      value: metric ? formatMetricValue(metric.weightKg, 'kg') : '--',
+      detail: metric ? formatObservationDate(metric.recordedAt) : 'sem avaliacao',
+    },
+    {
+      label: 'Gordura',
+      value: metric ? formatMetricValue(metric.bodyFatPercentage, '%') : '--',
+      detail: metric ? 'composicao corporal' : 'aguardando dados',
+    },
+    {
+      label: 'IMC',
+      value: metric ? calculateBmi(metric.weightKg, metric.heightCm) : '--',
+      detail: metric ? 'calculado por peso e altura' : 'peso e altura pendentes',
+    },
+  ];
 }
 
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
@@ -42,6 +88,9 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   const [observations, setObservations] = useState<Observation[]>([]);
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [observationError, setObservationError] = useState('');
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+  const [metricError, setMetricError] = useState('');
 
   useEffect(() => {
     let isCurrentUser = true;
@@ -135,6 +184,52 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     };
   }, [user.email]);
 
+  useEffect(() => {
+    let isCurrentUser = true;
+
+    const loadMetrics = async () => {
+      setIsLoadingMetrics(true);
+      setMetricError('');
+
+      try {
+        const data = await getMyMetrics();
+
+        if (isCurrentUser) {
+          setMetrics(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentUser) {
+          if (error instanceof ApiRequestError && error.status === 404) {
+            setMetricError('Nenhum cadastro de aluno foi encontrado para este usuario.');
+          } else if (error instanceof ApiRequestError && error.status === 403) {
+            setMetricError(
+              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+            );
+          } else {
+            setMetricError('Nao foi possivel carregar suas metricas.');
+          }
+        }
+      } finally {
+        if (isCurrentUser) {
+          setIsLoadingMetrics(false);
+        }
+      }
+    };
+
+    loadMetrics();
+
+    return () => {
+      isCurrentUser = false;
+    };
+  }, [user.email]);
+
   const currentWorkout = workouts[0] ?? null;
   const workoutProgress = workouts.length > 0 ? 100 : 0;
   const workoutTitle = isLoadingWorkouts
@@ -145,6 +240,8 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   const workoutNote = currentWorkout
     ? `Atualizado em ${formatObservationDate(currentWorkout.updatedAt)}`
     : workoutError || 'Seu profissional ainda nao cadastrou treinos.';
+  const currentMetric = metrics[0] ?? null;
+  const mainMetrics = getMetricSummary(currentMetric);
 
   return (
     <div className="student-portal-shell">
@@ -253,18 +350,47 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           <article className="student-portal-card student-portal-card-metrics">
             <div className="student-portal-card-heading">
               <span className="student-portal-kicker">Metricas principais</span>
-              <h2>Evolucao recente</h2>
+              <h2>{isLoadingMetrics ? 'Carregando metricas...' : 'Evolucao recente'}</h2>
             </div>
 
-            <div className="student-portal-metric-grid">
-              {mainMetrics.map((metric) => (
-                <div key={metric.label}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                  <small>{metric.detail}</small>
+            {metricError ? (
+              <p className="student-portal-card-note">{metricError}</p>
+            ) : metrics.length === 0 && !isLoadingMetrics ? (
+              <p className="student-portal-card-note">
+                Seu profissional ainda nao registrou metricas.
+              </p>
+            ) : (
+              <>
+                <div className="student-portal-metric-grid">
+                  {mainMetrics.map((metric) => (
+                    <div key={metric.label}>
+                      <span>{metric.label}</span>
+                      <strong>{metric.value}</strong>
+                      <small>{metric.detail}</small>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+
+                <div className="student-portal-note-list">
+                  {isLoadingMetrics ? (
+                    <p>Carregando metricas...</p>
+                  ) : (
+                    metrics.slice(0, 4).map((metric) => (
+                      <article className="student-portal-note-item" key={metric.id}>
+                        <p>
+                          <strong>{formatObservationDate(metric.recordedAt)}</strong>
+                          {metric.notes ? ` - ${metric.notes}` : ''}
+                        </p>
+                        <span>
+                          Peso {formatMetricValue(metric.weightKg, 'kg')} | IMC{' '}
+                          {calculateBmi(metric.weightKg, metric.heightCm)}
+                        </span>
+                      </article>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </article>
 
           <article className="student-portal-card student-portal-card-message">
