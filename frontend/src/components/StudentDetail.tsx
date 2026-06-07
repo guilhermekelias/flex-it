@@ -2,18 +2,24 @@ import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import {
   ApiUnauthorizedError,
+  createStudentNutritionPlan,
   createStudentObservation,
   createStudentMetric,
   createStudentWorkout,
+  deleteStudentNutritionPlan,
   deleteStudentMetric,
   deleteStudentWorkout,
+  getStudentNutritionPlans,
   getStudentMetrics,
   getStudentObservations,
   getStudentWorkouts,
+  updateStudentNutritionPlan,
   updateStudentMetric,
   updateStudentWorkout,
   type Metric,
   type MetricPayload,
+  type NutritionPlan,
+  type NutritionPlanPayload,
   type Observation,
   type Workout,
   type WorkoutPayload,
@@ -31,6 +37,12 @@ import {
   MetricForm,
   type MetricFormValues,
 } from './MetricForm';
+import {
+  createEmptyNutritionPlanFormValues,
+  getNutritionPlanFormValues,
+  NutritionPlanForm,
+  type NutritionPlanFormValues,
+} from './NutritionPlanForm';
 
 type StudentDetailStudent = {
   id: number;
@@ -45,6 +57,7 @@ type StudentDetailProps = {
   onBack: () => void;
   onSessionExpired: () => void;
   onMetricsChanged?: () => void;
+  onNutritionPlansChanged?: () => void;
   onWorkoutsChanged?: () => void;
 };
 
@@ -102,6 +115,7 @@ export function StudentDetail({
   onBack,
   onSessionExpired,
   onMetricsChanged,
+  onNutritionPlansChanged,
   onWorkoutsChanged,
 }: StudentDetailProps) {
   const displayGoal = getDisplayGoal(student.goal);
@@ -128,6 +142,14 @@ export function StudentDetail({
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [isSavingMetric, setIsSavingMetric] = useState(false);
   const [removingMetricId, setRemovingMetricId] = useState<number | null>(null);
+  const [nutritionPlans, setNutritionPlans] = useState<NutritionPlan[]>([]);
+  const [nutritionPlanFormValues, setNutritionPlanFormValues] =
+    useState<NutritionPlanFormValues>(createEmptyNutritionPlanFormValues);
+  const [nutritionPlanFeedback, setNutritionPlanFeedback] = useState('');
+  const [editingNutritionPlanId, setEditingNutritionPlanId] = useState<number | null>(null);
+  const [isLoadingNutritionPlans, setIsLoadingNutritionPlans] = useState(false);
+  const [isSavingNutritionPlan, setIsSavingNutritionPlan] = useState(false);
+  const [removingNutritionPlanId, setRemovingNutritionPlanId] = useState<number | null>(null);
 
   useEffect(() => {
     let isCurrentStudent = true;
@@ -201,6 +223,46 @@ export function StudentDetail({
     };
 
     loadObservations();
+
+    return () => {
+      isCurrentStudent = false;
+    };
+  }, [student.id]);
+
+  useEffect(() => {
+    let isCurrentStudent = true;
+
+    const loadNutritionPlans = async () => {
+      setIsLoadingNutritionPlans(true);
+      setNutritionPlanFeedback('');
+      setEditingNutritionPlanId(null);
+      setNutritionPlanFormValues(createEmptyNutritionPlanFormValues());
+
+      try {
+        const data = await getStudentNutritionPlans(student.id);
+
+        if (isCurrentStudent) {
+          setNutritionPlans(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentStudent) {
+          setNutritionPlanFeedback('Nao foi possivel carregar os planos alimentares.');
+        }
+      } finally {
+        if (isCurrentStudent) {
+          setIsLoadingNutritionPlans(false);
+        }
+      }
+    };
+
+    loadNutritionPlans();
 
     return () => {
       isCurrentStudent = false;
@@ -362,6 +424,88 @@ export function StudentDetail({
     setEditingMetricId(null);
   };
 
+  const resetNutritionPlanForm = () => {
+    setNutritionPlanFormValues(createEmptyNutritionPlanFormValues());
+    setEditingNutritionPlanId(null);
+  };
+
+  const handleSubmitNutritionPlan = async (nutritionPlanData: NutritionPlanPayload) => {
+    setIsSavingNutritionPlan(true);
+    setNutritionPlanFeedback('');
+
+    try {
+      if (editingNutritionPlanId !== null) {
+        const updatedNutritionPlan = await updateStudentNutritionPlan(
+          student.id,
+          editingNutritionPlanId,
+          nutritionPlanData,
+        );
+
+        setNutritionPlans((currentNutritionPlans) =>
+          currentNutritionPlans.map((nutritionPlan) =>
+            nutritionPlan.id === updatedNutritionPlan.id ? updatedNutritionPlan : nutritionPlan,
+          ),
+        );
+        setNutritionPlanFeedback('Plano alimentar atualizado.');
+      } else {
+        const newNutritionPlan = await createStudentNutritionPlan(student.id, nutritionPlanData);
+        setNutritionPlans((currentNutritionPlans) => [
+          newNutritionPlan,
+          ...currentNutritionPlans,
+        ]);
+        setNutritionPlanFeedback('Plano alimentar criado.');
+      }
+
+      resetNutritionPlanForm();
+      onNutritionPlansChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setNutritionPlanFeedback('Nao foi possivel salvar o plano alimentar.');
+    } finally {
+      setIsSavingNutritionPlan(false);
+    }
+  };
+
+  const handleEditNutritionPlan = (nutritionPlan: NutritionPlan) => {
+    setEditingNutritionPlanId(nutritionPlan.id);
+    setNutritionPlanFormValues(getNutritionPlanFormValues(nutritionPlan));
+    setNutritionPlanFeedback('Editando plano alimentar selecionado.');
+  };
+
+  const handleRemoveNutritionPlan = async (nutritionPlanId: number) => {
+    setRemovingNutritionPlanId(nutritionPlanId);
+    setNutritionPlanFeedback('');
+
+    try {
+      await deleteStudentNutritionPlan(student.id, nutritionPlanId);
+      setNutritionPlans((currentNutritionPlans) =>
+        currentNutritionPlans.filter((nutritionPlan) => nutritionPlan.id !== nutritionPlanId),
+      );
+
+      if (editingNutritionPlanId === nutritionPlanId) {
+        resetNutritionPlanForm();
+      }
+
+      setNutritionPlanFeedback('Plano alimentar removido.');
+      onNutritionPlansChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setNutritionPlanFeedback('Nao foi possivel remover o plano alimentar.');
+    } finally {
+      setRemovingNutritionPlanId(null);
+    }
+  };
+
   const handleSubmitMetric = async (metricData: MetricPayload) => {
     setIsSavingMetric(true);
     setMetricFeedback('');
@@ -431,6 +575,7 @@ export function StudentDetail({
   };
 
   const latestMetric = metrics[0] ?? null;
+  const latestNutritionPlan = nutritionPlans[0] ?? null;
 
   return (
     <section className="student-detail-view" aria-labelledby="student-detail-title">
@@ -530,23 +675,88 @@ export function StudentDetail({
 
         <article className="dashboard-panel student-detail-card student-detail-card-diet">
           <div className="student-detail-card-heading">
-            <span className="dashboard-section-kicker">Dieta atual</span>
-            <h2>Plano alimentar inicial</h2>
+            <span className="dashboard-section-kicker">Dietas</span>
+            <h2>{editingNutritionPlanId !== null ? 'Editar plano' : 'Novo plano alimentar'}</h2>
           </div>
 
-          <div className="student-detail-nutrition-grid">
-            <div>
-              <span>Calorias</span>
-              <strong>2.200 kcal</strong>
+          <NutritionPlanForm
+            isEditing={editingNutritionPlanId !== null}
+            isSubmitting={isSavingNutritionPlan}
+            onCancelEdit={resetNutritionPlanForm}
+            onSubmit={handleSubmitNutritionPlan}
+            onValuesChange={setNutritionPlanFormValues}
+            values={nutritionPlanFormValues}
+          />
+
+          {nutritionPlanFeedback && (
+            <p className="student-detail-observation-feedback">{nutritionPlanFeedback}</p>
+          )}
+
+          {latestNutritionPlan && (
+            <div className="student-detail-nutrition-grid">
+              <div>
+                <span>Calorias</span>
+                <strong>{latestNutritionPlan.calories} kcal</strong>
+              </div>
+              <div>
+                <span>Refeicoes</span>
+                <strong>{latestNutritionPlan.mealsCount} ao dia</strong>
+              </div>
+              <div>
+                <span>Foco</span>
+                <strong>{latestNutritionPlan.objective}</strong>
+              </div>
             </div>
-            <div>
-              <span>Refeicoes</span>
-              <strong>5 ao dia</strong>
-            </div>
-            <div>
-              <span>Foco</span>
-              <strong>{displayGoal}</strong>
-            </div>
+          )}
+
+          <div className="student-detail-note-list">
+            {isLoadingNutritionPlans ? (
+              <p>Carregando planos alimentares...</p>
+            ) : nutritionPlans.length === 0 ? (
+              <p>Nenhum plano alimentar cadastrado para este aluno.</p>
+            ) : (
+              nutritionPlans.map((nutritionPlan) => (
+                <article className="student-detail-note-item" key={nutritionPlan.id}>
+                  <strong>{nutritionPlan.name}</strong>
+                  <p>{nutritionPlan.objective}</p>
+
+                  <div className="student-detail-card-meta">
+                    <span>{nutritionPlan.calories} kcal</span>
+                    <span>{nutritionPlan.mealsCount} refeicoes</span>
+                    <span>{nutritionPlan.proteinGrams}g proteinas</span>
+                  </div>
+
+                  <div className="student-detail-card-meta">
+                    <span>{nutritionPlan.carbsGrams}g carboidratos</span>
+                    <span>{nutritionPlan.fatGrams}g gorduras</span>
+                    <span>{formatObservationDate(nutritionPlan.updatedAt)}</span>
+                  </div>
+
+                  {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+
+                  <span>Atualizado em {formatObservationDate(nutritionPlan.updatedAt)}</span>
+
+                  <div className="student-card-actions">
+                    <button
+                      className="student-detail-button"
+                      onClick={() => handleEditNutritionPlan(nutritionPlan)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      className="student-remove-button"
+                      disabled={removingNutritionPlanId === nutritionPlan.id}
+                      onClick={() => handleRemoveNutritionPlan(nutritionPlan.id)}
+                      type="button"
+                    >
+                      {removingNutritionPlanId === nutritionPlan.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </article>
 

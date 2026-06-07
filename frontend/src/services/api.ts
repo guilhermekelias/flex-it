@@ -75,6 +75,35 @@ export type MetricPayload = {
 
 export type MetricUpdatePayload = Partial<MetricPayload>;
 
+export type NutritionPlan = {
+  id: number;
+  name: string;
+  objective: string;
+  calories: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  mealsCount: number;
+  notes: string | null;
+  studentId: number;
+  professionalId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NutritionPlanPayload = {
+  name: string;
+  objective: string;
+  calories: number;
+  proteinGrams: number;
+  carbsGrams: number;
+  fatGrams: number;
+  mealsCount: number;
+  notes?: string | null;
+};
+
+export type NutritionPlanUpdatePayload = Partial<NutritionPlanPayload>;
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -275,6 +304,63 @@ export function deleteStudentWorkout(studentId: number, workoutId: number): Prom
 
 export function getMyWorkouts(): Promise<Workout[]> {
   return request<Workout[]>('/workouts/me', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getNutritionPlans(): Promise<NutritionPlan[]> {
+  return request<NutritionPlan[]>('/nutrition-plans', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getStudentNutritionPlans(studentId: number): Promise<NutritionPlan[]> {
+  return request<NutritionPlan[]>(`/students/${studentId}/nutrition-plans`, {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function createStudentNutritionPlan(
+  studentId: number,
+  nutritionPlanData: NutritionPlanPayload,
+): Promise<NutritionPlan> {
+  return request<NutritionPlan>(`/students/${studentId}/nutrition-plans`, {
+    method: 'POST',
+    authenticated: true,
+    body: JSON.stringify(nutritionPlanData),
+  });
+}
+
+export function updateStudentNutritionPlan(
+  studentId: number,
+  nutritionPlanId: number,
+  nutritionPlanData: NutritionPlanUpdatePayload,
+): Promise<NutritionPlan> {
+  return request<NutritionPlan>(
+    `/students/${studentId}/nutrition-plans/${nutritionPlanId}`,
+    {
+      method: 'PUT',
+      authenticated: true,
+      body: JSON.stringify(nutritionPlanData),
+    },
+  );
+}
+
+export function deleteStudentNutritionPlan(
+  studentId: number,
+  nutritionPlanId: number,
+): Promise<void> {
+  return request<void>(`/students/${studentId}/nutrition-plans/${nutritionPlanId}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
+}
+
+export function getMyNutritionPlans(): Promise<NutritionPlan[]> {
+  return request<NutritionPlan[]>('/nutrition-plans/me', {
     method: 'GET',
     authenticated: true,
   });

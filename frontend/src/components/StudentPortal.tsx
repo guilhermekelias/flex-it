@@ -2,10 +2,12 @@ import { useEffect, useState } from 'preact/hooks';
 import {
   ApiRequestError,
   ApiUnauthorizedError,
+  getMyNutritionPlans,
   getMyMetrics,
   getMyWorkouts,
   getMyObservations,
   type Metric,
+  type NutritionPlan,
   type Observation,
   type User,
   type Workout,
@@ -16,14 +18,6 @@ type StudentPortalProps = {
   user: User;
   onLogout: () => void;
   onSessionExpired: () => void;
-};
-
-const currentDiet = {
-  title: 'Plano alimentar equilibrado',
-  calories: '2.150 kcal',
-  meals: '5 refeicoes',
-  hydration: '2,7 L de agua',
-  adherence: 82,
 };
 
 function getFirstName(name: string) {
@@ -91,6 +85,9 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [metricError, setMetricError] = useState('');
+  const [nutritionPlans, setNutritionPlans] = useState<NutritionPlan[]>([]);
+  const [isLoadingNutritionPlans, setIsLoadingNutritionPlans] = useState(false);
+  const [nutritionPlanError, setNutritionPlanError] = useState('');
 
   useEffect(() => {
     let isCurrentUser = true;
@@ -187,6 +184,52 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   useEffect(() => {
     let isCurrentUser = true;
 
+    const loadNutritionPlans = async () => {
+      setIsLoadingNutritionPlans(true);
+      setNutritionPlanError('');
+
+      try {
+        const data = await getMyNutritionPlans();
+
+        if (isCurrentUser) {
+          setNutritionPlans(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentUser) {
+          if (error instanceof ApiRequestError && error.status === 404) {
+            setNutritionPlanError('Nenhum cadastro de aluno foi encontrado para este usuario.');
+          } else if (error instanceof ApiRequestError && error.status === 403) {
+            setNutritionPlanError(
+              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+            );
+          } else {
+            setNutritionPlanError('Nao foi possivel carregar seus planos alimentares.');
+          }
+        }
+      } finally {
+        if (isCurrentUser) {
+          setIsLoadingNutritionPlans(false);
+        }
+      }
+    };
+
+    loadNutritionPlans();
+
+    return () => {
+      isCurrentUser = false;
+    };
+  }, [user.email]);
+
+  useEffect(() => {
+    let isCurrentUser = true;
+
     const loadMetrics = async () => {
       setIsLoadingMetrics(true);
       setMetricError('');
@@ -242,6 +285,16 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     : workoutError || 'Seu profissional ainda nao cadastrou treinos.';
   const currentMetric = metrics[0] ?? null;
   const mainMetrics = getMetricSummary(currentMetric);
+  const currentNutritionPlan = nutritionPlans[0] ?? null;
+  const nutritionPlanProgress = nutritionPlans.length > 0 ? 100 : 0;
+  const nutritionPlanTitle = isLoadingNutritionPlans
+    ? 'Carregando dieta...'
+    : currentNutritionPlan
+      ? currentNutritionPlan.name
+      : 'Nenhum plano alimentar';
+  const nutritionPlanNote = currentNutritionPlan
+    ? `Atualizado em ${formatObservationDate(currentNutritionPlan.updatedAt)}`
+    : nutritionPlanError || 'Seu profissional ainda nao cadastrou planos alimentares.';
 
   return (
     <div className="student-portal-shell">
@@ -325,26 +378,56 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           <article className="student-portal-card student-portal-card-diet">
             <div className="student-portal-card-heading">
               <span className="student-portal-kicker">Dieta atual</span>
-              <h2>{currentDiet.title}</h2>
+              <h2>{nutritionPlanTitle}</h2>
             </div>
 
             <div className="student-portal-info-grid">
-              <span>{currentDiet.calories}</span>
-              <span>{currentDiet.meals}</span>
-              <span>{currentDiet.hydration}</span>
+              <span>
+                {currentNutritionPlan ? `${currentNutritionPlan.calories} kcal` : '-- kcal'}
+              </span>
+              <span>
+                {currentNutritionPlan
+                  ? `${currentNutritionPlan.mealsCount} refeicoes`
+                  : '-- refeicoes'}
+              </span>
+              <span>{currentNutritionPlan ? currentNutritionPlan.objective : 'Aguardando plano'}</span>
             </div>
 
             <div className="student-portal-progress">
               <div>
-                <span>Aderencia</span>
-                <strong>{currentDiet.adherence}%</strong>
+                <span>Planos cadastrados</span>
+                <strong>{nutritionPlans.length}</strong>
               </div>
               <div className="student-portal-progress-track student-portal-progress-track-green" aria-hidden="true">
-                <span style={{ width: `${currentDiet.adherence}%` }} />
+                <span style={{ width: `${nutritionPlanProgress}%` }} />
               </div>
             </div>
 
-            <p className="student-portal-card-note">Foco do dia: manter proteinas em todas as refeicoes.</p>
+            <p className="student-portal-card-note">{nutritionPlanNote}</p>
+
+            <div className="student-portal-note-list">
+              {isLoadingNutritionPlans ? (
+                <p>Carregando planos alimentares...</p>
+              ) : nutritionPlanError ? (
+                <p>{nutritionPlanError}</p>
+              ) : nutritionPlans.length === 0 ? (
+                <p>Nenhum plano alimentar enviado pelo profissional ainda.</p>
+              ) : (
+                nutritionPlans.map((nutritionPlan) => (
+                  <article className="student-portal-note-item" key={nutritionPlan.id}>
+                    <p>
+                      <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
+                    </p>
+                    <span>
+                      {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount} refeicoes |{' '}
+                      {nutritionPlan.proteinGrams}g P / {nutritionPlan.carbsGrams}g C /{' '}
+                      {nutritionPlan.fatGrams}g G
+                    </span>
+                    {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+                  </article>
+                ))
+              )}
+            </div>
           </article>
 
           <article className="student-portal-card student-portal-card-metrics">
