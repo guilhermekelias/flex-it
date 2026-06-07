@@ -3,10 +3,22 @@ import { useEffect, useState } from 'preact/hooks';
 import {
   ApiUnauthorizedError,
   createStudentObservation,
+  createStudentWorkout,
+  deleteStudentWorkout,
   getStudentObservations,
+  getStudentWorkouts,
+  updateStudentWorkout,
   type Observation,
+  type Workout,
+  type WorkoutPayload,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
+import {
+  createEmptyWorkoutFormValues,
+  getWorkoutFormValues,
+  WorkoutForm,
+  type WorkoutFormValues,
+} from './WorkoutForm';
 
 type StudentDetailStudent = {
   id: number;
@@ -20,6 +32,7 @@ type StudentDetailProps = {
   student: StudentDetailStudent;
   onBack: () => void;
   onSessionExpired: () => void;
+  onWorkoutsChanged?: () => void;
 };
 
 function getInitials(name: string) {
@@ -41,13 +54,67 @@ function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
 }
 
-export function StudentDetail({ student, onBack, onSessionExpired }: StudentDetailProps) {
+export function StudentDetail({
+  student,
+  onBack,
+  onSessionExpired,
+  onWorkoutsChanged,
+}: StudentDetailProps) {
   const displayGoal = getDisplayGoal(student.goal);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [workoutFormValues, setWorkoutFormValues] = useState<WorkoutFormValues>(
+    createEmptyWorkoutFormValues,
+  );
+  const [workoutFeedback, setWorkoutFeedback] = useState('');
+  const [editingWorkoutId, setEditingWorkoutId] = useState<number | null>(null);
+  const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
+  const [isSavingWorkout, setIsSavingWorkout] = useState(false);
+  const [removingWorkoutId, setRemovingWorkoutId] = useState<number | null>(null);
   const [observations, setObservations] = useState<Observation[]>([]);
   const [observationMessage, setObservationMessage] = useState('');
   const [observationFeedback, setObservationFeedback] = useState('');
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [isSavingObservation, setIsSavingObservation] = useState(false);
+
+  useEffect(() => {
+    let isCurrentStudent = true;
+
+    const loadWorkouts = async () => {
+      setIsLoadingWorkouts(true);
+      setWorkoutFeedback('');
+      setEditingWorkoutId(null);
+      setWorkoutFormValues(createEmptyWorkoutFormValues());
+
+      try {
+        const data = await getStudentWorkouts(student.id);
+
+        if (isCurrentStudent) {
+          setWorkouts(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentStudent) {
+          setWorkoutFeedback('Nao foi possivel carregar os treinos.');
+        }
+      } finally {
+        if (isCurrentStudent) {
+          setIsLoadingWorkouts(false);
+        }
+      }
+    };
+
+    loadWorkouts();
+
+    return () => {
+      isCurrentStudent = false;
+    };
+  }, [student.id]);
 
   useEffect(() => {
     let isCurrentStudent = true;
@@ -118,6 +185,85 @@ export function StudentDetail({ student, onBack, onSessionExpired }: StudentDeta
     }
   };
 
+  const resetWorkoutForm = () => {
+    setWorkoutFormValues(createEmptyWorkoutFormValues());
+    setEditingWorkoutId(null);
+  };
+
+  const handleSubmitWorkout = async (workoutData: WorkoutPayload) => {
+    setIsSavingWorkout(true);
+    setWorkoutFeedback('');
+
+    try {
+      if (editingWorkoutId !== null) {
+        const updatedWorkout = await updateStudentWorkout(
+          student.id,
+          editingWorkoutId,
+          workoutData,
+        );
+
+        setWorkouts((currentWorkouts) =>
+          currentWorkouts.map((workout) =>
+            workout.id === updatedWorkout.id ? updatedWorkout : workout,
+          ),
+        );
+        setWorkoutFeedback('Treino atualizado.');
+      } else {
+        const newWorkout = await createStudentWorkout(student.id, workoutData);
+        setWorkouts((currentWorkouts) => [newWorkout, ...currentWorkouts]);
+        setWorkoutFeedback('Treino criado.');
+      }
+
+      resetWorkoutForm();
+      onWorkoutsChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setWorkoutFeedback('Nao foi possivel salvar o treino.');
+    } finally {
+      setIsSavingWorkout(false);
+    }
+  };
+
+  const handleEditWorkout = (workout: Workout) => {
+    setEditingWorkoutId(workout.id);
+    setWorkoutFormValues(getWorkoutFormValues(workout));
+    setWorkoutFeedback('Editando treino selecionado.');
+  };
+
+  const handleRemoveWorkout = async (workoutId: number) => {
+    setRemovingWorkoutId(workoutId);
+    setWorkoutFeedback('');
+
+    try {
+      await deleteStudentWorkout(student.id, workoutId);
+      setWorkouts((currentWorkouts) =>
+        currentWorkouts.filter((workout) => workout.id !== workoutId),
+      );
+
+      if (editingWorkoutId === workoutId) {
+        resetWorkoutForm();
+      }
+
+      setWorkoutFeedback('Treino removido.');
+      onWorkoutsChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setWorkoutFeedback('Nao foi possivel remover o treino.');
+    } finally {
+      setRemovingWorkoutId(null);
+    }
+  };
+
   return (
     <section className="student-detail-view" aria-labelledby="student-detail-title">
       <button className="student-detail-back-button" onClick={onBack} type="button">
@@ -154,24 +300,63 @@ export function StudentDetail({ student, onBack, onSessionExpired }: StudentDeta
       <section className="student-detail-grid" aria-label="Acompanhamento do aluno">
         <article className="dashboard-panel student-detail-card student-detail-card-workout">
           <div className="student-detail-card-heading">
-            <span className="dashboard-section-kicker">Treino atual</span>
-            <h2>Treino A - Base semanal</h2>
+            <span className="dashboard-section-kicker">Treinos</span>
+            <h2>{editingWorkoutId !== null ? 'Editar treino' : 'Novo treino'}</h2>
           </div>
 
-          <div className="student-detail-card-meta">
-            <span>4 sessoes/semana</span>
-            <span>55 min</span>
-            <span>Moderado</span>
-          </div>
+          <WorkoutForm
+            isEditing={editingWorkoutId !== null}
+            isSubmitting={isSavingWorkout}
+            onCancelEdit={resetWorkoutForm}
+            onSubmit={handleSubmitWorkout}
+            onValuesChange={setWorkoutFormValues}
+            values={workoutFormValues}
+          />
 
-          <div className="student-detail-progress">
-            <div>
-              <span>Adesao planejada</span>
-              <strong>72%</strong>
-            </div>
-            <div className="student-detail-progress-track" aria-hidden="true">
-              <span style={{ width: '72%' }} />
-            </div>
+          {workoutFeedback && (
+            <p className="student-detail-observation-feedback">{workoutFeedback}</p>
+          )}
+
+          <div className="student-detail-note-list">
+            {isLoadingWorkouts ? (
+              <p>Carregando treinos...</p>
+            ) : workouts.length === 0 ? (
+              <p>Nenhum treino cadastrado para este aluno.</p>
+            ) : (
+              workouts.map((workout) => (
+                <article className="student-detail-note-item" key={workout.id}>
+                  <strong>{workout.name}</strong>
+                  {workout.description && <p>{workout.description}</p>}
+
+                  <div className="student-detail-card-meta">
+                    <span>{workout.type}</span>
+                    <span>{workout.durationMinutes} min</span>
+                    <span>{workout.exercisesCount} exercicios</span>
+                  </div>
+
+                  <span>Atualizado em {formatObservationDate(workout.updatedAt)}</span>
+
+                  <div className="student-card-actions">
+                    <button
+                      className="student-detail-button"
+                      onClick={() => handleEditWorkout(workout)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      className="student-remove-button"
+                      disabled={removingWorkoutId === workout.id}
+                      onClick={() => handleRemoveWorkout(workout.id)}
+                      type="button"
+                    >
+                      {removingWorkoutId === workout.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </article>
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
+import { ApiUnauthorizedError, getWorkouts, type Workout } from '../services/api';
+import { formatObservationDate } from '../utils/formatObservationDate';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
 import { StudentDetail } from './StudentDetail';
 
@@ -26,19 +28,6 @@ type DashboardPageProps = {
   onDeleteStudent: (id: number) => Promise<void>;
   onSessionExpired: () => void;
   onLogout: () => void;
-};
-
-type WorkoutPlan = {
-  id: number;
-  studentName: string;
-  title: string;
-  duration: string;
-  exercises: number;
-  category: string;
-  date: string;
-  intensity: string;
-  focus: string;
-  progress: number;
 };
 
 type DietPlan = {
@@ -72,45 +61,6 @@ type MetricSnapshot = {
     tone: 'positive' | 'negative' | 'neutral';
   }>;
 };
-
-const workoutPlans: WorkoutPlan[] = [
-  {
-    id: 1,
-    studentName: 'Ana Silva',
-    title: 'Treino A - Peito e Triceps',
-    duration: '60 min',
-    exercises: 8,
-    category: 'Superior',
-    date: '10/05/2026',
-    intensity: 'Moderada',
-    focus: 'Hipertrofia',
-    progress: 72,
-  },
-  {
-    id: 2,
-    studentName: 'Carlos Santos',
-    title: 'Treino B - Costas e Biceps',
-    duration: '55 min',
-    exercises: 7,
-    category: 'Superior',
-    date: '09/05/2026',
-    intensity: 'Alta',
-    focus: 'Forca',
-    progress: 64,
-  },
-  {
-    id: 3,
-    studentName: 'Beatriz Costa',
-    title: 'Treino C - Pernas',
-    duration: '70 min',
-    exercises: 10,
-    category: 'Inferior',
-    date: '08/05/2026',
-    intensity: 'Alta',
-    focus: 'Resistencia',
-    progress: 86,
-  },
-];
 
 const dietPlans: DietPlan[] = [
   {
@@ -207,6 +157,23 @@ function formatAge(age: number) {
   return Number.isFinite(age) && age > 0 ? `${age} anos` : 'Idade n\u00e3o informada';
 }
 
+function formatAverageDuration(workouts: Workout[]) {
+  if (workouts.length === 0) {
+    return '--';
+  }
+
+  const totalDuration = workouts.reduce((total, workout) => total + workout.durationMinutes, 0);
+  return `${Math.round(totalDuration / workouts.length)} min`;
+}
+
+function getWorkoutTypes(workouts: Workout[]) {
+  return Array.from(new Set(workouts.map((workout) => workout.type).filter(Boolean)));
+}
+
+function getStudentName(students: Student[], studentId: number) {
+  return students.find((student) => student.id === studentId)?.name || 'Aluno nao encontrado';
+}
+
 export function DashboardPage({
   user,
   students,
@@ -225,6 +192,29 @@ export function DashboardPage({
   const [visibleStudents, setVisibleStudents] = useState<Student[]>(students);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedMetricId, setSelectedMetricId] = useState(metricSnapshots[0].id);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
+  const [workoutsError, setWorkoutsError] = useState('');
+
+  const fetchWorkouts = async () => {
+    setIsLoadingWorkouts(true);
+    setWorkoutsError('');
+
+    try {
+      const data = await getWorkouts();
+      setWorkouts(data);
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setWorkoutsError('Nao foi possivel carregar os treinos.');
+    } finally {
+      setIsLoadingWorkouts(false);
+    }
+  };
 
   useEffect(() => {
     setVisibleStudents(students);
@@ -236,6 +226,16 @@ export function DashboardPage({
       return students.some((student) => student.id === currentStudentId) ? currentStudentId : null;
     });
   }, [students]);
+
+  useEffect(() => {
+    void fetchWorkouts();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'workouts') {
+      void fetchWorkouts();
+    }
+  }, [activeTab]);
 
   const resetStudentForm = () => {
     setName('');
@@ -309,8 +309,8 @@ export function DashboardPage({
     },
     {
       label: 'Treinos',
-      value: '--',
-      helper: 'Em breve',
+      value: isLoadingWorkouts ? '...' : workouts.length,
+      helper: workoutsError ? 'Erro ao carregar' : 'Ativos',
       tone: 'green',
     },
     {
@@ -385,6 +385,9 @@ export function DashboardPage({
       return (
         <section className="dashboard-tab-page" aria-labelledby="student-detail-title">
           <StudentDetail
+            onWorkoutsChanged={() => {
+              void fetchWorkouts();
+            }}
             student={selectedStudent}
             onBack={() => setSelectedStudentId(null)}
             onSessionExpired={onSessionExpired}
@@ -541,83 +544,113 @@ export function DashboardPage({
     );
   };
 
-  const renderWorkoutsTab = () => (
-    <section className="dashboard-tab-page" aria-labelledby="workouts-title">
-      <div className="dashboard-page-heading feature-page-heading feature-page-heading-workouts">
-        <span className="dashboard-section-kicker">Prescricao de treinos</span>
-        <h1 id="workouts-title">Treinos</h1>
-        <p>
-          Organize treinos por aluno, foco muscular e intensidade. Nesta sprint os dados sao
-          demonstrativos.
-        </p>
-      </div>
+  const renderWorkoutsTab = () => {
+    const workoutTypes = getWorkoutTypes(workouts);
 
-      <section className="feature-summary-grid" aria-label="Resumo de treinos">
-        <article className="feature-summary-card">
-          <span>Ativos</span>
-          <strong>{workoutPlans.length}</strong>
-          <small>planos mockados</small>
-        </article>
-        <article className="feature-summary-card">
-          <span>Media</span>
-          <strong>62 min</strong>
-          <small>por sessao</small>
-        </article>
-        <article className="feature-summary-card">
-          <span>Foco</span>
-          <strong>3</strong>
-          <small>categorias</small>
-        </article>
-      </section>
+    return (
+      <section className="dashboard-tab-page" aria-labelledby="workouts-title">
+        <div className="dashboard-page-heading feature-page-heading feature-page-heading-workouts">
+          <span className="dashboard-section-kicker">Prescricao de treinos</span>
+          <h1 id="workouts-title">Treinos</h1>
+          <p>Visualize os treinos reais cadastrados para os alunos do profissional.</p>
+        </div>
 
-      <div className="feature-filter-row" aria-label="Filtros visuais de treino">
-        {['Superior', 'Inferior', 'Full Body', 'Cardio'].map((category) => (
-          <button className="feature-filter-chip feature-filter-chip-workouts" key={category} type="button">
-            {category}
-          </button>
-        ))}
-      </div>
-
-      <section className="feature-card-list" aria-label="Treinos cadastrados">
-        {workoutPlans.map((workout) => (
-          <article className="feature-card" key={workout.id}>
-            <div className="feature-card-header">
-              <div>
-                <span className="feature-student-name">{workout.studentName}</span>
-                <h2>{workout.title}</h2>
-              </div>
-              <span className="feature-status-pill">{workout.category}</span>
-            </div>
-
-            <div className="feature-meta-grid">
-              <span>{workout.duration}</span>
-              <span>{workout.exercises} exercicios</span>
-              <span>{workout.intensity}</span>
-            </div>
-
-            <div className="feature-progress-block">
-              <div>
-                <span>Foco</span>
-                <strong>{workout.focus}</strong>
-              </div>
-              <div className="feature-progress-track" aria-hidden="true">
-                <span style={{ width: `${workout.progress}%` }} />
-              </div>
-              <small>{workout.progress}% da rotina planejada</small>
-            </div>
-
-            <div className="feature-card-footer">
-              <span>Criado em {workout.date}</span>
-              <div>
-                <button type="button">Editar</button>
-                <button type="button">Duplicar</button>
-              </div>
-            </div>
+        <section className="feature-summary-grid" aria-label="Resumo de treinos">
+          <article className="feature-summary-card">
+            <span>Ativos</span>
+            <strong>{isLoadingWorkouts ? '...' : workouts.length}</strong>
+            <small>treinos cadastrados</small>
           </article>
-        ))}
+          <article className="feature-summary-card">
+            <span>Media</span>
+            <strong>{formatAverageDuration(workouts)}</strong>
+            <small>por treino</small>
+          </article>
+          <article className="feature-summary-card">
+            <span>Tipos</span>
+            <strong>{workoutTypes.length}</strong>
+            <small>em acompanhamento</small>
+          </article>
+        </section>
+
+        <div className="feature-filter-row" aria-label="Tipos de treino cadastrados">
+          {workoutTypes.length === 0 ? (
+            <button className="feature-filter-chip feature-filter-chip-workouts" disabled type="button">
+              Sem tipos cadastrados
+            </button>
+          ) : (
+            workoutTypes.map((category) => (
+              <button
+                className="feature-filter-chip feature-filter-chip-workouts"
+                key={category}
+                type="button"
+              >
+                {category}
+              </button>
+            ))
+          )}
+        </div>
+
+        <section className="feature-card-list" aria-label="Treinos cadastrados">
+          {isLoadingWorkouts ? (
+            <article className="feature-card">
+              <p>Carregando treinos...</p>
+            </article>
+          ) : workoutsError ? (
+            <article className="feature-card">
+              <p>{workoutsError}</p>
+            </article>
+          ) : workouts.length === 0 ? (
+            <article className="feature-card">
+              <p>Nenhum treino cadastrado ainda.</p>
+            </article>
+          ) : (
+            workouts.map((workout) => (
+              <article className="feature-card" key={workout.id}>
+                <div className="feature-card-header">
+                  <div>
+                    <span className="feature-student-name">
+                      {getStudentName(visibleStudents, workout.studentId)}
+                    </span>
+                    <h2>{workout.name}</h2>
+                  </div>
+                  <span className="feature-status-pill">{workout.type}</span>
+                </div>
+
+                <div className="feature-meta-grid">
+                  <span>{workout.durationMinutes} min</span>
+                  <span>{workout.exercisesCount} exercicios</span>
+                  <span>Atualizado</span>
+                </div>
+
+                <div className="feature-progress-block">
+                  <div>
+                    <span>Descricao</span>
+                    <strong>{workout.description || 'Sem descricao'}</strong>
+                  </div>
+                </div>
+
+                <div className="feature-card-footer">
+                  <span>Criado em {formatObservationDate(workout.createdAt)}</span>
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedStudentId(workout.studentId);
+                        setActiveTab('students');
+                      }}
+                      type="button"
+                    >
+                      Abrir aluno
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </section>
       </section>
-    </section>
-  );
+    );
+  };
 
   const renderDietsTab = () => (
     <section className="dashboard-tab-page" aria-labelledby="diets-title">

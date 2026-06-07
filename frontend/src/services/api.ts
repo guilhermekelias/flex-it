@@ -27,6 +27,29 @@ export type ObservationPayload = {
   message: string;
 };
 
+export type Workout = {
+  id: number;
+  name: string;
+  description: string | null;
+  type: string;
+  durationMinutes: number;
+  exercisesCount: number;
+  studentId: number;
+  professionalId: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkoutPayload = {
+  name: string;
+  description?: string | null;
+  type: string;
+  durationMinutes: number;
+  exercisesCount: number;
+};
+
+export type WorkoutUpdatePayload = Partial<WorkoutPayload>;
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -176,6 +199,57 @@ export function createStudentObservation(
 
 export function getMyObservations(): Promise<Observation[]> {
   return request<Observation[]>('/observations/me', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getWorkouts(): Promise<Workout[]> {
+  return request<Workout[]>('/workouts', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function getStudentWorkouts(studentId: number): Promise<Workout[]> {
+  return request<Workout[]>(`/students/${studentId}/workouts`, {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function createStudentWorkout(
+  studentId: number,
+  workoutData: WorkoutPayload,
+): Promise<Workout> {
+  return request<Workout>(`/students/${studentId}/workouts`, {
+    method: 'POST',
+    authenticated: true,
+    body: JSON.stringify(workoutData),
+  });
+}
+
+export function updateStudentWorkout(
+  studentId: number,
+  workoutId: number,
+  workoutData: WorkoutUpdatePayload,
+): Promise<Workout> {
+  return request<Workout>(`/students/${studentId}/workouts/${workoutId}`, {
+    method: 'PUT',
+    authenticated: true,
+    body: JSON.stringify(workoutData),
+  });
+}
+
+export function deleteStudentWorkout(studentId: number, workoutId: number): Promise<void> {
+  return request<void>(`/students/${studentId}/workouts/${workoutId}`, {
+    method: 'DELETE',
+    authenticated: true,
+  });
+}
+
+export function getMyWorkouts(): Promise<Workout[]> {
+  return request<Workout[]>('/workouts/me', {
     method: 'GET',
     authenticated: true,
   });
