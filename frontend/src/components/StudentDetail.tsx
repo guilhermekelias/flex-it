@@ -3,11 +3,17 @@ import { useEffect, useState } from 'preact/hooks';
 import {
   ApiUnauthorizedError,
   createStudentObservation,
+  createStudentMetric,
   createStudentWorkout,
+  deleteStudentMetric,
   deleteStudentWorkout,
+  getStudentMetrics,
   getStudentObservations,
   getStudentWorkouts,
+  updateStudentMetric,
   updateStudentWorkout,
+  type Metric,
+  type MetricPayload,
   type Observation,
   type Workout,
   type WorkoutPayload,
@@ -19,6 +25,12 @@ import {
   WorkoutForm,
   type WorkoutFormValues,
 } from './WorkoutForm';
+import {
+  createEmptyMetricFormValues,
+  getMetricFormValues,
+  MetricForm,
+  type MetricFormValues,
+} from './MetricForm';
 
 type StudentDetailStudent = {
   id: number;
@@ -32,6 +44,7 @@ type StudentDetailProps = {
   student: StudentDetailStudent;
   onBack: () => void;
   onSessionExpired: () => void;
+  onMetricsChanged?: () => void;
   onWorkoutsChanged?: () => void;
 };
 
@@ -54,10 +67,41 @@ function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
 }
 
+function formatMetricValue(value: number | null, unit: string) {
+  if (value === null || !Number.isFinite(value)) {
+    return '--';
+  }
+
+  return `${value.toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  })} ${unit}`;
+}
+
+function calculateBmi(weightKg: number | null, heightCm: number | null) {
+  if (
+    weightKg === null ||
+    heightCm === null ||
+    !Number.isFinite(weightKg) ||
+    !Number.isFinite(heightCm) ||
+    weightKg <= 0 ||
+    heightCm <= 0
+  ) {
+    return '--';
+  }
+
+  const heightMeters = heightCm / 100;
+  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  });
+}
+
 export function StudentDetail({
   student,
   onBack,
   onSessionExpired,
+  onMetricsChanged,
   onWorkoutsChanged,
 }: StudentDetailProps) {
   const displayGoal = getDisplayGoal(student.goal);
@@ -75,6 +119,15 @@ export function StudentDetail({
   const [observationFeedback, setObservationFeedback] = useState('');
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [isSavingObservation, setIsSavingObservation] = useState(false);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [metricFormValues, setMetricFormValues] = useState<MetricFormValues>(
+    createEmptyMetricFormValues,
+  );
+  const [metricFeedback, setMetricFeedback] = useState('');
+  const [editingMetricId, setEditingMetricId] = useState<number | null>(null);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
+  const [isSavingMetric, setIsSavingMetric] = useState(false);
+  const [removingMetricId, setRemovingMetricId] = useState<number | null>(null);
 
   useEffect(() => {
     let isCurrentStudent = true;
@@ -148,6 +201,46 @@ export function StudentDetail({
     };
 
     loadObservations();
+
+    return () => {
+      isCurrentStudent = false;
+    };
+  }, [student.id]);
+
+  useEffect(() => {
+    let isCurrentStudent = true;
+
+    const loadMetrics = async () => {
+      setIsLoadingMetrics(true);
+      setMetricFeedback('');
+      setEditingMetricId(null);
+      setMetricFormValues(createEmptyMetricFormValues());
+
+      try {
+        const data = await getStudentMetrics(student.id);
+
+        if (isCurrentStudent) {
+          setMetrics(data);
+        }
+      } catch (error) {
+        if (error instanceof ApiUnauthorizedError) {
+          onSessionExpired();
+          return;
+        }
+
+        console.error(error);
+
+        if (isCurrentStudent) {
+          setMetricFeedback('Nao foi possivel carregar as metricas.');
+        }
+      } finally {
+        if (isCurrentStudent) {
+          setIsLoadingMetrics(false);
+        }
+      }
+    };
+
+    loadMetrics();
 
     return () => {
       isCurrentStudent = false;
@@ -263,6 +356,81 @@ export function StudentDetail({
       setRemovingWorkoutId(null);
     }
   };
+
+  const resetMetricForm = () => {
+    setMetricFormValues(createEmptyMetricFormValues());
+    setEditingMetricId(null);
+  };
+
+  const handleSubmitMetric = async (metricData: MetricPayload) => {
+    setIsSavingMetric(true);
+    setMetricFeedback('');
+
+    try {
+      if (editingMetricId !== null) {
+        const updatedMetric = await updateStudentMetric(student.id, editingMetricId, metricData);
+
+        setMetrics((currentMetrics) =>
+          currentMetrics.map((metric) =>
+            metric.id === updatedMetric.id ? updatedMetric : metric,
+          ),
+        );
+        setMetricFeedback('Metrica atualizada.');
+      } else {
+        const newMetric = await createStudentMetric(student.id, metricData);
+        setMetrics((currentMetrics) => [newMetric, ...currentMetrics]);
+        setMetricFeedback('Metrica registrada.');
+      }
+
+      resetMetricForm();
+      onMetricsChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setMetricFeedback('Nao foi possivel salvar a metrica.');
+    } finally {
+      setIsSavingMetric(false);
+    }
+  };
+
+  const handleEditMetric = (metric: Metric) => {
+    setEditingMetricId(metric.id);
+    setMetricFormValues(getMetricFormValues(metric));
+    setMetricFeedback('Editando metrica selecionada.');
+  };
+
+  const handleRemoveMetric = async (metricId: number) => {
+    setRemovingMetricId(metricId);
+    setMetricFeedback('');
+
+    try {
+      await deleteStudentMetric(student.id, metricId);
+      setMetrics((currentMetrics) => currentMetrics.filter((metric) => metric.id !== metricId));
+
+      if (editingMetricId === metricId) {
+        resetMetricForm();
+      }
+
+      setMetricFeedback('Metrica removida.');
+      onMetricsChanged?.();
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setMetricFeedback('Nao foi possivel remover a metrica.');
+    } finally {
+      setRemovingMetricId(null);
+    }
+  };
+
+  const latestMetric = metrics[0] ?? null;
 
   return (
     <section className="student-detail-view" aria-labelledby="student-detail-title">
@@ -385,22 +553,88 @@ export function StudentDetail({
         <article className="dashboard-panel student-detail-card student-detail-card-metrics">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">Metricas</span>
-            <h2>Ultima avaliacao</h2>
+            <h2>{editingMetricId !== null ? 'Editar metrica' : 'Nova metrica'}</h2>
           </div>
+
+          <MetricForm
+            isEditing={editingMetricId !== null}
+            isSubmitting={isSavingMetric}
+            onCancelEdit={resetMetricForm}
+            onSubmit={handleSubmitMetric}
+            onValuesChange={setMetricFormValues}
+            values={metricFormValues}
+          />
+
+          {metricFeedback && (
+            <p className="student-detail-observation-feedback">{metricFeedback}</p>
+          )}
 
           <div className="student-detail-metric-grid">
             <div>
               <span>Peso</span>
-              <strong>72,4 kg</strong>
+              <strong>{latestMetric ? formatMetricValue(latestMetric.weightKg, 'kg') : '--'}</strong>
             </div>
             <div>
               <span>Gordura</span>
-              <strong>21,8%</strong>
+              <strong>
+                {latestMetric ? formatMetricValue(latestMetric.bodyFatPercentage, '%') : '--'}
+              </strong>
             </div>
             <div>
               <span>IMC</span>
-              <strong>24,9</strong>
+              <strong>
+                {latestMetric ? calculateBmi(latestMetric.weightKg, latestMetric.heightCm) : '--'}
+              </strong>
             </div>
+          </div>
+
+          <div className="student-detail-note-list">
+            {isLoadingMetrics ? (
+              <p>Carregando metricas...</p>
+            ) : metrics.length === 0 ? (
+              <p>Nenhuma metrica cadastrada para este aluno.</p>
+            ) : (
+              metrics.map((metric) => (
+                <article className="student-detail-note-item" key={metric.id}>
+                  <strong>Avaliacao de {formatObservationDate(metric.recordedAt)}</strong>
+
+                  <div className="student-detail-card-meta">
+                    <span>Peso {formatMetricValue(metric.weightKg, 'kg')}</span>
+                    <span>Gordura {formatMetricValue(metric.bodyFatPercentage, '%')}</span>
+                    <span>IMC {calculateBmi(metric.weightKg, metric.heightCm)}</span>
+                  </div>
+
+                  <div className="student-detail-card-meta">
+                    <span>Altura {formatMetricValue(metric.heightCm, 'cm')}</span>
+                    <span>Massa {formatMetricValue(metric.muscleMassKg, 'kg')}</span>
+                    <span>{formatObservationDate(metric.recordedAt)}</span>
+                  </div>
+
+                  {metric.notes && <p>{metric.notes}</p>}
+
+                  <span>Atualizado em {formatObservationDate(metric.updatedAt)}</span>
+
+                  <div className="student-card-actions">
+                    <button
+                      className="student-detail-button"
+                      onClick={() => handleEditMetric(metric)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      className="student-remove-button"
+                      disabled={removingMetricId === metric.id}
+                      onClick={() => handleRemoveMetric(metric.id)}
+                      type="button"
+                    >
+                      {removingMetricId === metric.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </article>
 
