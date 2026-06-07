@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
-import { ApiUnauthorizedError, getMetrics, getWorkouts, type Metric, type Workout } from '../services/api';
+import {
+  ApiUnauthorizedError,
+  getMetrics,
+  getNutritionPlans,
+  getWorkouts,
+  type Metric,
+  type NutritionPlan,
+  type Workout,
+} from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
 import { StudentDetail } from './StudentDetail';
@@ -29,58 +37,6 @@ type DashboardPageProps = {
   onSessionExpired: () => void;
   onLogout: () => void;
 };
-
-type DietPlan = {
-  id: number;
-  studentName: string;
-  title: string;
-  calories: number;
-  meals: number;
-  goal: string;
-  date: string;
-  protein: string;
-  carbs: string;
-  fats: string;
-};
-
-const dietPlans: DietPlan[] = [
-  {
-    id: 1,
-    studentName: 'Ana Silva',
-    title: 'Plano para Emagrecimento',
-    calories: 1800,
-    meals: 6,
-    goal: 'Perda de peso',
-    date: '01/05/2026',
-    protein: '120g',
-    carbs: '185g',
-    fats: '58g',
-  },
-  {
-    id: 2,
-    studentName: 'Carlos Santos',
-    title: 'Plano de Ganho de Massa',
-    calories: 3200,
-    meals: 6,
-    goal: 'Hipertrofia',
-    date: '28/04/2026',
-    protein: '180g',
-    carbs: '410g',
-    fats: '88g',
-  },
-  {
-    id: 3,
-    studentName: 'Beatriz Costa',
-    title: 'Plano Equilibrado',
-    calories: 2200,
-    meals: 5,
-    goal: 'Manutencao',
-    date: '15/04/2026',
-    protein: '135g',
-    carbs: '250g',
-    fats: '72g',
-  },
-];
 
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'profissional';
@@ -112,6 +68,24 @@ function formatAverageDuration(workouts: Workout[]) {
 
 function getWorkoutTypes(workouts: Workout[]) {
   return Array.from(new Set(workouts.map((workout) => workout.type).filter(Boolean)));
+}
+
+function formatAverageMeals(nutritionPlans: NutritionPlan[]) {
+  if (nutritionPlans.length === 0) {
+    return '--';
+  }
+
+  const totalMeals = nutritionPlans.reduce(
+    (total, nutritionPlan) => total + nutritionPlan.mealsCount,
+    0,
+  );
+  return `${Math.round(totalMeals / nutritionPlans.length)} ao dia`;
+}
+
+function getNutritionObjectives(nutritionPlans: NutritionPlan[]) {
+  return Array.from(
+    new Set(nutritionPlans.map((nutritionPlan) => nutritionPlan.objective).filter(Boolean)),
+  );
 }
 
 function getStudentName(students: Student[], studentId: number) {
@@ -224,6 +198,9 @@ export function DashboardPage({
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false);
   const [metricsError, setMetricsError] = useState('');
+  const [nutritionPlans, setNutritionPlans] = useState<NutritionPlan[]>([]);
+  const [isLoadingNutritionPlans, setIsLoadingNutritionPlans] = useState(false);
+  const [nutritionPlansError, setNutritionPlansError] = useState('');
 
   const fetchWorkouts = async () => {
     setIsLoadingWorkouts(true);
@@ -265,6 +242,26 @@ export function DashboardPage({
     }
   };
 
+  const fetchNutritionPlans = async () => {
+    setIsLoadingNutritionPlans(true);
+    setNutritionPlansError('');
+
+    try {
+      const data = await getNutritionPlans();
+      setNutritionPlans(data);
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setNutritionPlansError('Nao foi possivel carregar as dietas.');
+    } finally {
+      setIsLoadingNutritionPlans(false);
+    }
+  };
+
   useEffect(() => {
     setVisibleStudents(students);
     setSelectedStudentId((currentStudentId) => {
@@ -279,6 +276,7 @@ export function DashboardPage({
   useEffect(() => {
     void fetchWorkouts();
     void fetchMetrics();
+    void fetchNutritionPlans();
   }, []);
 
   useEffect(() => {
@@ -288,6 +286,10 @@ export function DashboardPage({
 
     if (activeTab === 'metrics') {
       void fetchMetrics();
+    }
+
+    if (activeTab === 'diets') {
+      void fetchNutritionPlans();
     }
   }, [activeTab]);
 
@@ -387,8 +389,8 @@ export function DashboardPage({
     },
     {
       label: 'Dietas',
-      value: '--',
-      helper: 'Em breve',
+      value: isLoadingNutritionPlans ? '...' : nutritionPlans.length,
+      helper: nutritionPlansError ? 'Erro ao carregar' : 'Ativas',
       tone: 'amber',
     },
     {
@@ -459,6 +461,9 @@ export function DashboardPage({
           <StudentDetail
             onMetricsChanged={() => {
               void fetchMetrics();
+            }}
+            onNutritionPlansChanged={() => {
+              void fetchNutritionPlans();
             }}
             onWorkoutsChanged={() => {
               void fetchWorkouts();
@@ -727,87 +732,136 @@ export function DashboardPage({
     );
   };
 
-  const renderDietsTab = () => (
-    <section className="dashboard-tab-page" aria-labelledby="diets-title">
-      <div className="dashboard-page-heading feature-page-heading feature-page-heading-diets">
-        <span className="dashboard-section-kicker">Planejamento alimentar</span>
-        <h1 id="diets-title">Dietas</h1>
-        <p>
-          Visualize planos alimentares, calorias e distribuicao de macros. Os cards ainda usam
-          dados mockados.
-        </p>
-      </div>
+  const renderDietsTab = () => {
+    const nutritionObjectives = getNutritionObjectives(nutritionPlans);
 
-      <section className="feature-summary-grid" aria-label="Resumo de dietas">
-        <article className="feature-summary-card">
-          <span>Ativas</span>
-          <strong>{dietPlans.length}</strong>
-          <small>dietas mockadas</small>
-        </article>
-        <article className="feature-summary-card">
-          <span>Refeicoes</span>
-          <strong>5-6</strong>
-          <small>por dia</small>
-        </article>
-        <article className="feature-summary-card">
-          <span>Objetivos</span>
-          <strong>3</strong>
-          <small>em acompanhamento</small>
-        </article>
-      </section>
+    return (
+      <section className="dashboard-tab-page" aria-labelledby="diets-title">
+        <div className="dashboard-page-heading feature-page-heading feature-page-heading-diets">
+          <span className="dashboard-section-kicker">Planejamento alimentar</span>
+          <h1 id="diets-title">Dietas</h1>
+          <p>Visualize os planos alimentares reais cadastrados para seus alunos.</p>
+        </div>
 
-      <div className="feature-filter-row" aria-label="Filtros visuais de dieta">
-        {['Perda de peso', 'Hipertrofia', 'Manutencao', 'Definicao'].map((goalName) => (
-          <button className="feature-filter-chip feature-filter-chip-diets" key={goalName} type="button">
-            {goalName}
-          </button>
-        ))}
-      </div>
-
-      <section className="feature-card-list" aria-label="Planos alimentares">
-        {dietPlans.map((diet) => (
-          <article className="feature-card nutrition-card" key={diet.id}>
-            <div className="feature-card-header">
-              <div>
-                <span className="feature-student-name">{diet.studentName}</span>
-                <h2>{diet.title}</h2>
-              </div>
-              <span className="feature-status-pill feature-status-pill-green">{diet.goal}</span>
-            </div>
-
-            <div className="feature-meta-grid">
-              <span>{diet.calories} kcal/dia</span>
-              <span>{diet.meals} refeicoes</span>
-              <span>Atualizado</span>
-            </div>
-
-            <div className="nutrition-macro-grid" aria-label={`Macros do plano de ${diet.studentName}`}>
-              <div>
-                <span>Proteinas</span>
-                <strong>{diet.protein}</strong>
-              </div>
-              <div>
-                <span>Carboidratos</span>
-                <strong>{diet.carbs}</strong>
-              </div>
-              <div>
-                <span>Gorduras</span>
-                <strong>{diet.fats}</strong>
-              </div>
-            </div>
-
-            <div className="feature-card-footer">
-              <span>Criado em {diet.date}</span>
-              <div>
-                <button type="button">Editar</button>
-                <button type="button">Duplicar</button>
-              </div>
-            </div>
+        <section className="feature-summary-grid" aria-label="Resumo de dietas">
+          <article className="feature-summary-card">
+            <span>Ativas</span>
+            <strong>{isLoadingNutritionPlans ? '...' : nutritionPlans.length}</strong>
+            <small>planos cadastrados</small>
           </article>
-        ))}
+          <article className="feature-summary-card">
+            <span>Refeicoes</span>
+            <strong>{formatAverageMeals(nutritionPlans)}</strong>
+            <small>media por plano</small>
+          </article>
+          <article className="feature-summary-card">
+            <span>Objetivos</span>
+            <strong>{nutritionObjectives.length}</strong>
+            <small>em acompanhamento</small>
+          </article>
+        </section>
+
+        <div className="feature-filter-row" aria-label="Objetivos de dieta cadastrados">
+          {nutritionObjectives.length === 0 ? (
+            <button className="feature-filter-chip feature-filter-chip-diets" disabled type="button">
+              Sem objetivos cadastrados
+            </button>
+          ) : (
+            nutritionObjectives.map((objective) => (
+              <button
+                className="feature-filter-chip feature-filter-chip-diets"
+                key={objective}
+                type="button"
+              >
+                {objective}
+              </button>
+            ))
+          )}
+        </div>
+
+        <section className="feature-card-list" aria-label="Planos alimentares">
+          {isLoadingNutritionPlans ? (
+            <article className="feature-card">
+              <p>Carregando dietas...</p>
+            </article>
+          ) : nutritionPlansError ? (
+            <article className="feature-card">
+              <p>{nutritionPlansError}</p>
+            </article>
+          ) : nutritionPlans.length === 0 ? (
+            <article className="feature-card">
+              <p>Nenhum plano alimentar cadastrado ainda.</p>
+            </article>
+          ) : (
+            nutritionPlans.map((nutritionPlan) => (
+              <article className="feature-card nutrition-card" key={nutritionPlan.id}>
+                <div className="feature-card-header">
+                  <div>
+                    <span className="feature-student-name">
+                      {getStudentName(visibleStudents, nutritionPlan.studentId)}
+                    </span>
+                    <h2>{nutritionPlan.name}</h2>
+                  </div>
+                  <span className="feature-status-pill feature-status-pill-green">
+                    {nutritionPlan.objective}
+                  </span>
+                </div>
+
+                <div className="feature-meta-grid">
+                  <span>{nutritionPlan.calories} kcal/dia</span>
+                  <span>{nutritionPlan.mealsCount} refeicoes</span>
+                  <span>Atualizado</span>
+                </div>
+
+                <div
+                  className="nutrition-macro-grid"
+                  aria-label={`Macros do plano de ${getStudentName(
+                    visibleStudents,
+                    nutritionPlan.studentId,
+                  )}`}
+                >
+                  <div>
+                    <span>Proteinas</span>
+                    <strong>{nutritionPlan.proteinGrams}g</strong>
+                  </div>
+                  <div>
+                    <span>Carboidratos</span>
+                    <strong>{nutritionPlan.carbsGrams}g</strong>
+                  </div>
+                  <div>
+                    <span>Gorduras</span>
+                    <strong>{nutritionPlan.fatGrams}g</strong>
+                  </div>
+                </div>
+
+                <div className="feature-progress-block">
+                  <div>
+                    <span>Observacoes</span>
+                    <strong>{nutritionPlan.notes || 'Sem observacoes'}</strong>
+                  </div>
+                </div>
+
+                <div className="feature-card-footer">
+                  <span>Criado em {formatObservationDate(nutritionPlan.createdAt)}</span>
+                  <div>
+                    <button
+                      onClick={() => {
+                        setSelectedStudentId(nutritionPlan.studentId);
+                        setActiveTab('students');
+                      }}
+                      type="button"
+                    >
+                      Abrir aluno
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </section>
       </section>
-    </section>
-  );
+    );
+  };
 
   const renderMetricsTab = () => {
     const studentsWithMetrics = visibleStudents.filter((student) =>
