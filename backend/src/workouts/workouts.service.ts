@@ -2,7 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Student } from '../students/entities/student.entity';
-import { Workout } from './entities/workout.entity';
+import { Workout, WorkoutExercise } from './entities/workout.entity';
+
+export type WorkoutExerciseData = {
+  name?: unknown;
+  sets?: unknown;
+  reps?: unknown;
+  rest?: unknown;
+  notes?: unknown;
+};
 
 export type CreateWorkoutData = {
   name?: string;
@@ -10,6 +18,7 @@ export type CreateWorkoutData = {
   type?: string;
   durationMinutes?: number;
   exercisesCount?: number;
+  exercises?: WorkoutExerciseData[];
 };
 
 export type UpdateWorkoutData = Partial<CreateWorkoutData>;
@@ -20,6 +29,7 @@ type NormalizedWorkoutData = {
   type?: string;
   durationMinutes?: number;
   exercisesCount?: number;
+  exercises?: WorkoutExercise[];
 };
 
 @Injectable()
@@ -142,12 +152,16 @@ export class WorkoutsService {
     data: CreateWorkoutData | UpdateWorkoutData,
     requireAllFields: boolean,
   ): NormalizedWorkoutData {
+    const hasExercises = Object.prototype.hasOwnProperty.call(data, 'exercises');
+
     return {
       ...this.normalizeName(data.name, requireAllFields),
       ...this.normalizeDescription(data.description),
       ...this.normalizeType(data.type, requireAllFields),
       ...this.normalizeDurationMinutes(data.durationMinutes, requireAllFields),
-      ...this.normalizeExercisesCount(data.exercisesCount, requireAllFields),
+      ...(hasExercises
+        ? this.normalizeExercises(data.exercises)
+        : this.normalizeExercisesCount(data.exercisesCount, requireAllFields)),
     };
   }
 
@@ -241,6 +255,108 @@ export class WorkoutsService {
         0,
       ),
     };
+  }
+
+  private normalizeExercises(
+    exercises: CreateWorkoutData['exercises'],
+  ): Pick<NormalizedWorkoutData, 'exercises' | 'exercisesCount'> {
+    if (!Array.isArray(exercises)) {
+      throw new BadRequestException('Lista de exercicios invalida');
+    }
+
+    const normalizedExercises = exercises.map((exercise, index) =>
+      this.normalizeExercise(exercise, index),
+    );
+
+    return {
+      exercises: normalizedExercises,
+      exercisesCount: normalizedExercises.length,
+    };
+  }
+
+  private normalizeExercise(exercise: WorkoutExerciseData, index: number): WorkoutExercise {
+    if (!exercise || typeof exercise !== 'object' || Array.isArray(exercise)) {
+      throw new BadRequestException(`Exercicio ${index + 1} invalido`);
+    }
+
+    return {
+      name: this.normalizeExerciseName(exercise.name, index),
+      sets: this.normalizeOptionalPositiveInteger(
+        exercise.sets,
+        `Series do exercicio ${index + 1} devem ser um numero inteiro positivo`,
+      ),
+      reps: this.normalizeOptionalShortText(
+        exercise.reps,
+        `Repeticoes do exercicio ${index + 1} devem ser texto ou numero simples`,
+        40,
+      ),
+      rest: this.normalizeOptionalShortText(
+        exercise.rest,
+        `Descanso do exercicio ${index + 1} deve ser um texto curto`,
+        40,
+      ),
+      notes: this.normalizeOptionalShortText(
+        exercise.notes,
+        `Observacoes do exercicio ${index + 1} devem ser texto`,
+        500,
+      ),
+    };
+  }
+
+  private normalizeExerciseName(name: unknown, index: number): string {
+    if (typeof name !== 'string') {
+      throw new BadRequestException(`Nome do exercicio ${index + 1} e obrigatorio`);
+    }
+
+    const normalizedName = name.trim();
+
+    if (!normalizedName) {
+      throw new BadRequestException(`Nome do exercicio ${index + 1} e obrigatorio`);
+    }
+
+    if (normalizedName.length > 120) {
+      throw new BadRequestException(`Nome do exercicio ${index + 1} deve ter ate 120 caracteres`);
+    }
+
+    return normalizedName;
+  }
+
+  private normalizeOptionalPositiveInteger(value: unknown, errorMessage: string): number | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    return value;
+  }
+
+  private normalizeOptionalShortText(
+    value: unknown,
+    errorMessage: string,
+    maxLength: number,
+  ): string | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const normalizedValue = String(value).trim();
+
+    if (!normalizedValue) {
+      return null;
+    }
+
+    if (normalizedValue.length > maxLength) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    return normalizedValue;
   }
 
   private normalizeRequiredText(value: string, errorMessage: string): string {

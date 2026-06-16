@@ -110,6 +110,30 @@ function calculateBmi(weightKg: number | null, heightCm: number | null) {
   });
 }
 
+function getStructuredWorkoutExercises(workout: Workout) {
+  return Array.isArray(workout.exercises)
+    ? workout.exercises.filter((exercise) => exercise.name.trim())
+    : [];
+}
+
+function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercises>[number]) {
+  const meta: string[] = [];
+
+  if (exercise.sets) {
+    meta.push(`${exercise.sets} series`);
+  }
+
+  if (exercise.reps) {
+    meta.push(`${exercise.reps} reps`);
+  }
+
+  if (exercise.rest) {
+    meta.push(`${exercise.rest} descanso`);
+  }
+
+  return meta.join(' | ');
+}
+
 export function StudentDetail({
   student,
   onBack,
@@ -636,39 +660,62 @@ export function StudentDetail({
             ) : workouts.length === 0 ? (
               <p>Nenhum treino cadastrado para este aluno.</p>
             ) : (
-              workouts.map((workout) => (
-                <article className="student-detail-note-item" key={workout.id}>
-                  <strong>{workout.name}</strong>
-                  {workout.description && <p>{workout.description}</p>}
+              workouts.map((workout) => {
+                const workoutExercises = getStructuredWorkoutExercises(workout);
 
-                  <div className="student-detail-card-meta">
-                    <span>{workout.type}</span>
-                    <span>{workout.durationMinutes} min</span>
-                    <span>{workout.exercisesCount} exercicios</span>
-                  </div>
+                return (
+                  <article className="student-detail-note-item" key={workout.id}>
+                    <strong>{workout.name}</strong>
+                    {workout.description && <p>{workout.description}</p>}
 
-                  <span>Atualizado em {formatObservationDate(workout.updatedAt)}</span>
+                    <div className="student-detail-card-meta">
+                      <span>{workout.type}</span>
+                      <span>{workout.durationMinutes} min</span>
+                      <span>{workout.exercisesCount} exercicios</span>
+                    </div>
 
-                  <div className="student-card-actions">
-                    <button
-                      className="student-detail-button"
-                      onClick={() => handleEditWorkout(workout)}
-                      type="button"
-                    >
-                      Editar
-                    </button>
+                    {workoutExercises.length > 0 && (
+                      <div className="workout-exercise-summary-list">
+                        {workoutExercises.map((exercise, index) => {
+                          const exerciseMeta = getExerciseMeta(exercise);
 
-                    <button
-                      className="student-remove-button"
-                      disabled={removingWorkoutId === workout.id}
-                      onClick={() => handleRemoveWorkout(workout.id)}
-                      type="button"
-                    >
-                      {removingWorkoutId === workout.id ? 'Removendo...' : 'Remover'}
-                    </button>
-                  </div>
-                </article>
-              ))
+                          return (
+                            <div
+                              className="workout-exercise-summary-item"
+                              key={`${exercise.name}-${index}`}
+                            >
+                              <strong>{exercise.name}</strong>
+                              {exerciseMeta && <span>{exerciseMeta}</span>}
+                              {exercise.notes && <p>{exercise.notes}</p>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <span>Atualizado em {formatObservationDate(workout.updatedAt)}</span>
+
+                    <div className="student-card-actions">
+                      <button
+                        className="student-detail-button"
+                        onClick={() => handleEditWorkout(workout)}
+                        type="button"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        className="student-remove-button"
+                        disabled={removingWorkoutId === workout.id}
+                        onClick={() => handleRemoveWorkout(workout.id)}
+                        type="button"
+                      >
+                        {removingWorkoutId === workout.id ? 'Removendo...' : 'Remover'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         </article>

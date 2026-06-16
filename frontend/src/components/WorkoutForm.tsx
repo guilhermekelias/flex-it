@@ -1,6 +1,14 @@
 import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
-import type { Workout, WorkoutPayload } from '../services/api';
+import type { Workout, WorkoutExercise, WorkoutPayload } from '../services/api';
+
+export type WorkoutExerciseFormValues = {
+  name: string;
+  sets: string;
+  reps: string;
+  rest: string;
+  notes: string;
+};
 
 export type WorkoutFormValues = {
   name: string;
@@ -8,6 +16,8 @@ export type WorkoutFormValues = {
   type: string;
   durationMinutes: string;
   exercisesCount: string;
+  exercises: WorkoutExerciseFormValues[];
+  usesStructuredExercises: boolean;
 };
 
 type WorkoutFormProps = {
@@ -19,6 +29,24 @@ type WorkoutFormProps = {
   onCancelEdit: () => void;
 };
 
+type WorkoutTextField = 'name' | 'description' | 'type' | 'durationMinutes' | 'exercisesCount';
+
+function createEmptyExerciseFormValues(): WorkoutExerciseFormValues {
+  return {
+    name: '',
+    sets: '',
+    reps: '',
+    rest: '',
+    notes: '',
+  };
+}
+
+function getWorkoutExercises(workout: Workout): WorkoutExercise[] {
+  return Array.isArray(workout.exercises)
+    ? workout.exercises.filter((exercise) => exercise.name.trim())
+    : [];
+}
+
 export function createEmptyWorkoutFormValues(): WorkoutFormValues {
   return {
     name: '',
@@ -26,16 +54,31 @@ export function createEmptyWorkoutFormValues(): WorkoutFormValues {
     type: '',
     durationMinutes: '',
     exercisesCount: '',
+    exercises: [createEmptyExerciseFormValues()],
+    usesStructuredExercises: true,
   };
 }
 
 export function getWorkoutFormValues(workout: Workout): WorkoutFormValues {
+  const exercises = getWorkoutExercises(workout);
+
   return {
     name: workout.name,
     description: workout.description || '',
     type: workout.type,
     durationMinutes: String(workout.durationMinutes),
     exercisesCount: String(workout.exercisesCount),
+    exercises:
+      exercises.length > 0
+        ? exercises.map((exercise) => ({
+            name: exercise.name,
+            sets: exercise.sets ? String(exercise.sets) : '',
+            reps: exercise.reps || '',
+            rest: exercise.rest || '',
+            notes: exercise.notes || '',
+          }))
+        : [],
+    usesStructuredExercises: exercises.length > 0,
   };
 }
 
@@ -49,12 +92,102 @@ export function WorkoutForm({
 }: WorkoutFormProps) {
   const [formError, setFormError] = useState('');
 
-  const updateValue = (field: keyof WorkoutFormValues, value: string) => {
+  const updateValue = (field: WorkoutTextField, value: string) => {
     setFormError('');
     onValuesChange({
       ...values,
       [field]: value,
     });
+  };
+
+  const updateExerciseValue = (
+    index: number,
+    field: keyof WorkoutExerciseFormValues,
+    value: string,
+  ) => {
+    setFormError('');
+    onValuesChange({
+      ...values,
+      usesStructuredExercises: true,
+      exercises: values.exercises.map((exercise, currentIndex) =>
+        currentIndex === index
+          ? {
+              ...exercise,
+              [field]: value,
+            }
+          : exercise,
+      ),
+    });
+  };
+
+  const addExercise = () => {
+    setFormError('');
+    onValuesChange({
+      ...values,
+      usesStructuredExercises: true,
+      exercises: [...values.exercises, createEmptyExerciseFormValues()],
+    });
+  };
+
+  const removeExercise = (index: number) => {
+    setFormError('');
+
+    const remainingExercises = values.exercises.filter(
+      (_exercise, currentIndex) => currentIndex !== index,
+    );
+
+    onValuesChange({
+      ...values,
+      usesStructuredExercises: true,
+      exercises:
+        remainingExercises.length > 0
+          ? remainingExercises
+          : [createEmptyExerciseFormValues()],
+    });
+  };
+
+  const normalizeExercises = (): WorkoutExercise[] | null => {
+    const normalizedExercises: WorkoutExercise[] = [];
+
+    for (const [index, exercise] of values.exercises.entries()) {
+      const name = exercise.name.trim();
+      const sets = exercise.sets.trim();
+      const reps = exercise.reps.trim();
+      const rest = exercise.rest.trim();
+      const notes = exercise.notes.trim();
+      const hasAnyValue = Boolean(name || sets || reps || rest || notes);
+
+      if (!hasAnyValue) {
+        continue;
+      }
+
+      if (!name) {
+        setFormError(`Informe o nome do exercicio ${index + 1}.`);
+        return null;
+      }
+
+      const setsValue = sets ? Number(sets) : null;
+
+      if (setsValue !== null && (!Number.isInteger(setsValue) || setsValue <= 0)) {
+        setFormError(`Series do exercicio ${index + 1} devem ser um numero positivo.`);
+        return null;
+      }
+
+      if (rest.length > 40) {
+        setFormError(`Descanso do exercicio ${index + 1} deve ser curto.`);
+        return null;
+      }
+
+      normalizedExercises.push({
+        name,
+        sets: setsValue,
+        reps: reps || null,
+        rest: rest || null,
+        notes: notes || null,
+      });
+    }
+
+    return normalizedExercises;
   };
 
   const handleSubmit = (event: JSX.TargetedEvent<HTMLFormElement, Event>) => {
@@ -63,31 +196,50 @@ export function WorkoutForm({
     const name = values.name.trim();
     const type = values.type.trim();
     const durationMinutes = Number(values.durationMinutes);
-    const exercisesCount = Number(values.exercisesCount);
 
     if (!name || !type || !Number.isInteger(durationMinutes) || durationMinutes <= 0) {
       setFormError('Preencha nome, tipo e duracao com valores validos.');
       return;
     }
 
-    if (!Number.isInteger(exercisesCount) || exercisesCount < 0) {
-      setFormError('Quantidade de exercicios deve ser zero ou maior.');
+    const normalizedExercises = normalizeExercises();
+
+    if (!normalizedExercises) {
+      return;
+    }
+
+    if (!isEditing && normalizedExercises.length === 0) {
+      setFormError('Adicione pelo menos um exercicio ao treino.');
       return;
     }
 
     const description = values.description.trim();
-
-    onSubmit({
+    const workoutData: WorkoutPayload = {
       name,
       description: description || null,
       type,
       durationMinutes,
-      exercisesCount,
-    });
+    };
+
+    if (values.usesStructuredExercises || normalizedExercises.length > 0) {
+      workoutData.exercises = normalizedExercises;
+      workoutData.exercisesCount = normalizedExercises.length;
+    } else {
+      const legacyExercisesCount = Number(values.exercisesCount);
+
+      if (!Number.isInteger(legacyExercisesCount) || legacyExercisesCount < 0) {
+        setFormError('Quantidade de exercicios deve ser zero ou maior.');
+        return;
+      }
+
+      workoutData.exercisesCount = legacyExercisesCount;
+    }
+
+    onSubmit(workoutData);
   };
 
   return (
-    <form className="student-form" onSubmit={handleSubmit}>
+    <form className="student-form workout-form" onSubmit={handleSubmit}>
       <label>
         <span>Nome do treino</span>
         <input
@@ -122,45 +274,127 @@ export function WorkoutForm({
         />
       </label>
 
-      <div className="student-form-row">
-        <label>
-          <span>Duracao</span>
-          <input
-            min="1"
-            onInput={(event) =>
-              updateValue('durationMinutes', (event.target as HTMLInputElement).value)
-            }
-            placeholder="60"
-            required
-            type="number"
-            value={values.durationMinutes}
-          />
-        </label>
+      <label>
+        <span>Duracao</span>
+        <input
+          min="1"
+          onInput={(event) =>
+            updateValue('durationMinutes', (event.target as HTMLInputElement).value)
+          }
+          placeholder="60"
+          required
+          type="number"
+          value={values.durationMinutes}
+        />
+      </label>
 
-        <label>
-          <span>Exercicios</span>
-          <input
-            min="0"
-            onInput={(event) =>
-              updateValue('exercisesCount', (event.target as HTMLInputElement).value)
-            }
-            placeholder="8"
-            required
-            type="number"
-            value={values.exercisesCount}
-          />
-        </label>
-      </div>
+      <section className="workout-exercises-section" aria-labelledby="workout-exercises-title">
+        <div className="workout-exercises-heading">
+          <div>
+            <span id="workout-exercises-title">Exercicios</span>
+            <small>Monte a lista do dia com series, repeticoes e descanso.</small>
+          </div>
 
-      <button className="dashboard-primary-button" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar treino' : 'Criar treino'}
-      </button>
+          <button className="workout-exercise-add-button" onClick={addExercise} type="button">
+            + Adicionar
+          </button>
+        </div>
 
-      {isEditing && (
-        <button className="dashboard-secondary-button" onClick={onCancelEdit} type="button">
-          Cancelar edicao
+        <div className="workout-exercise-list">
+          {values.exercises.map((exercise, index) => (
+            <article className="workout-exercise-item" key={index}>
+              <div className="workout-exercise-item-heading">
+                <span className="workout-exercise-index" aria-label={`Exercicio ${index + 1}`}>
+                  {index + 1}
+                </span>
+
+                <label className="workout-exercise-name-field">
+                  <span>Nome do exercicio</span>
+                  <input
+                    onInput={(event) =>
+                      updateExerciseValue(index, 'name', (event.target as HTMLInputElement).value)
+                    }
+                    placeholder="Nome do exercicio"
+                    type="text"
+                    value={exercise.name}
+                  />
+                </label>
+
+                <button
+                  className="workout-exercise-remove-button"
+                  onClick={() => removeExercise(index)}
+                  type="button"
+                >
+                  Remover
+                </button>
+              </div>
+
+              <div className="workout-exercise-grid">
+                <label>
+                  <span>Series</span>
+                  <input
+                    min="1"
+                    onInput={(event) =>
+                      updateExerciseValue(index, 'sets', (event.target as HTMLInputElement).value)
+                    }
+                    placeholder="3"
+                    type="number"
+                    value={exercise.sets}
+                  />
+                </label>
+
+                <label>
+                  <span>Reps</span>
+                  <input
+                    onInput={(event) =>
+                      updateExerciseValue(index, 'reps', (event.target as HTMLInputElement).value)
+                    }
+                    placeholder="12"
+                    type="text"
+                    value={exercise.reps}
+                  />
+                </label>
+
+                <label>
+                  <span>Descanso</span>
+                  <input
+                    onInput={(event) =>
+                      updateExerciseValue(index, 'rest', (event.target as HTMLInputElement).value)
+                    }
+                    placeholder="60s"
+                    type="text"
+                    value={exercise.rest}
+                  />
+                </label>
+              </div>
+
+              <label>
+                <span>Observacoes</span>
+                <input
+                  onInput={(event) =>
+                    updateExerciseValue(index, 'notes', (event.target as HTMLInputElement).value)
+                  }
+                  placeholder="Ex: Foco na contracao, nao travar cotovelos..."
+                  type="text"
+                  value={exercise.notes}
+                />
+              </label>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <div className="workout-form-actions">
+        {isEditing && (
+          <button className="dashboard-secondary-button" onClick={onCancelEdit} type="button">
+            Cancelar edicao
+          </button>
+        )}
+
+        <button className="dashboard-primary-button" disabled={isSubmitting} type="submit">
+          {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar treino' : 'Criar treino'}
         </button>
-      )}
+      </div>
 
       {formError && <p className="student-detail-observation-feedback">{formError}</p>}
     </form>

@@ -10,6 +10,14 @@ import {
 import { Student } from '../../students/entities/student.entity';
 import { User } from '../../users/entities/user.entity';
 
+export type WorkoutExercise = {
+  name: string;
+  sets: number | null;
+  reps: string | null;
+  rest: string | null;
+  notes: string | null;
+};
+
 @Entity('workouts')
 export class Workout {
   @PrimaryGeneratedColumn()
@@ -29,6 +37,13 @@ export class Workout {
 
   @Column({ name: 'exercises_count', type: 'int' })
   exercisesCount: number;
+
+  @Column({
+    name: 'exercises',
+    type: 'jsonb',
+    default: () => "'[]'::jsonb",
+  })
+  exercises: WorkoutExercise[];
 
   @Column({ name: 'student_id' })
   studentId: number;

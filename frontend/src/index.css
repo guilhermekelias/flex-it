@@ -595,6 +595,109 @@ button {
   gap: 10px;
 }
 
+.workout-form {
+  gap: 14px;
+}
+
+.workout-exercises-section {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.workout-exercises-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workout-exercises-heading span {
+  display: block;
+  color: #0f172a;
+  font-size: 0.96rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.workout-exercises-heading small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.workout-exercise-add-button,
+.workout-exercise-remove-button {
+  border: 0;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.workout-exercise-add-button {
+  color: #2563eb;
+}
+
+.workout-exercise-remove-button {
+  color: #dc2626;
+}
+
+.workout-exercise-list {
+  display: grid;
+  gap: 10px;
+}
+
+.workout-exercise-item {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 11px;
+}
+
+.workout-exercise-item-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 9px;
+}
+
+.workout-exercise-index {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.workout-exercise-name-field {
+  min-width: 0;
+}
+
+.workout-exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workout-form-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
 .dashboard-primary-button,
 .dashboard-secondary-button {
   min-height: 48px;
@@ -1063,6 +1166,31 @@ button {
 
 .student-detail-note-item p {
   padding: 0;
+}
+
+.workout-exercise-summary-list {
+  display: grid;
+  gap: 7px;
+}
+
+.workout-exercise-summary-item {
+  display: grid;
+  gap: 3px;
+  border-left: 3px solid #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+  padding: 8px 10px;
+}
+
+.workout-exercise-summary-item strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.workout-exercise-summary-item p {
+  color: #475569;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .student-detail-note-item span,
@@ -1968,6 +2096,37 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 559px) {
+  .workout-exercises-heading,
+  .workout-exercise-item-heading {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .workout-exercises-heading {
+    display: grid;
+  }
+
+  .workout-exercise-item-heading {
+    gap: 8px;
+  }
+
+  .workout-exercise-index {
+    width: 28px;
+    height: 28px;
+  }
+
+  .workout-exercise-grid,
+  .workout-form-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .workout-exercise-add-button,
+  .workout-exercise-remove-button {
+    justify-self: start;
+  }
 }
 
 @media (max-width: 359px) {

@@ -30,6 +30,14 @@ export type ObservationPayload = {
   message: string;
 };
 
+export type WorkoutExercise = {
+  name: string;
+  sets?: number | null;
+  reps?: string | null;
+  rest?: string | null;
+  notes?: string | null;
+};
+
 export type Workout = {
   id: number;
   name: string;
@@ -37,6 +45,7 @@ export type Workout = {
   type: string;
   durationMinutes: number;
   exercisesCount: number;
+  exercises?: WorkoutExercise[] | null;
   studentId: number;
   professionalId: number;
   createdAt: string;
@@ -48,7 +57,8 @@ export type WorkoutPayload = {
   description?: string | null;
   type: string;
   durationMinutes: number;
-  exercisesCount: number;
+  exercisesCount?: number;
+  exercises?: WorkoutExercise[];
 };
 
 export type WorkoutUpdatePayload = Partial<WorkoutPayload>;
