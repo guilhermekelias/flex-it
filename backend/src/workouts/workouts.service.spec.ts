@@ -109,6 +109,71 @@ describe('WorkoutsService', () => {
     expect(workoutsRepository.save).toHaveBeenCalledWith(workout);
   });
 
+  it('should create a workout with structured exercises and derive the count', async () => {
+    const student = { id: 3, professionalId: 10 } as Student;
+    const data = {
+      name: 'Treino A',
+      description: null,
+      type: 'Hipertrofia',
+      durationMinutes: 60,
+      exercises: [
+        {
+          name: '  Supino reto  ',
+          sets: 3,
+          reps: 12,
+          rest: '  60s  ',
+          notes: '  Controlar descida  ',
+        },
+        {
+          name: 'Remada baixa',
+          reps: '10-12',
+        },
+      ],
+    } as CreateWorkoutData;
+    const workout = {
+      id: 1,
+      name: 'Treino A',
+      description: null,
+      type: 'Hipertrofia',
+      durationMinutes: 60,
+      exercisesCount: 2,
+      exercises: [
+        {
+          name: 'Supino reto',
+          sets: 3,
+          reps: '12',
+          rest: '60s',
+          notes: 'Controlar descida',
+        },
+        {
+          name: 'Remada baixa',
+          sets: null,
+          reps: '10-12',
+          rest: null,
+          notes: null,
+        },
+      ],
+      studentId: 3,
+      professionalId: 10,
+    } as Workout;
+
+    studentsRepository.findOne.mockResolvedValue(student);
+    workoutsRepository.create.mockReturnValue(workout);
+    workoutsRepository.save.mockResolvedValue(workout);
+
+    await expect(service.createForStudent(3, 10, data)).resolves.toEqual(workout);
+    expect(workoutsRepository.create).toHaveBeenCalledWith({
+      name: 'Treino A',
+      description: null,
+      type: 'Hipertrofia',
+      durationMinutes: 60,
+      exercises: workout.exercises,
+      exercisesCount: 2,
+      studentId: 3,
+      professionalId: 10,
+    });
+  });
+
   it('should reject invalid workout payloads before checking ownership', async () => {
     await expect(
       service.createForStudent(3, 10, {
@@ -116,6 +181,24 @@ describe('WorkoutsService', () => {
         type: 'Hipertrofia',
         durationMinutes: 60,
         exercisesCount: 8,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(studentsRepository.findOne).not.toHaveBeenCalled();
+    expect(workoutsRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should reject invalid structured exercises before checking ownership', async () => {
+    await expect(
+      service.createForStudent(3, 10, {
+        name: 'Treino A',
+        type: 'Hipertrofia',
+        durationMinutes: 60,
+        exercises: [
+          {
+            name: '   ',
+            sets: 3,
+          },
+        ],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(studentsRepository.findOne).not.toHaveBeenCalled();
@@ -226,6 +309,54 @@ describe('WorkoutsService', () => {
       name: 'Treino B',
       description: 'Novo foco',
       durationMinutes: 45,
+    });
+  });
+
+  it('should update structured exercises and refresh the derived count', async () => {
+    const existingWorkout = {
+      id: 1,
+      name: 'Treino A',
+      description: null,
+      type: 'Hipertrofia',
+      durationMinutes: 60,
+      exercisesCount: 8,
+      exercises: [],
+      studentId: 3,
+      professionalId: 10,
+    } as Workout;
+    const updatedWorkout = {
+      ...existingWorkout,
+      exercisesCount: 1,
+      exercises: [
+        {
+          name: 'Agachamento',
+          sets: 4,
+          reps: '8',
+          rest: '90s',
+          notes: null,
+        },
+      ],
+    } as Workout;
+
+    workoutsRepository.findOne.mockResolvedValue(existingWorkout);
+    workoutsRepository.save.mockResolvedValue(updatedWorkout);
+
+    await expect(
+      service.updateForStudent(3, 1, 10, {
+        exercises: [
+          {
+            name: ' Agachamento ',
+            sets: 4,
+            reps: 8,
+            rest: '90s',
+          },
+        ],
+      }),
+    ).resolves.toEqual(updatedWorkout);
+    expect(workoutsRepository.save).toHaveBeenCalledWith({
+      ...existingWorkout,
+      exercisesCount: 1,
+      exercises: updatedWorkout.exercises,
     });
   });
 

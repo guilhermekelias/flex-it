@@ -95,11 +95,20 @@ describe('WorkoutsController', () => {
       description: 'Base semanal',
       type: 'Hipertrofia',
       durationMinutes: 60,
-      exercisesCount: 8,
+      exercises: [
+        {
+          name: 'Supino reto',
+          sets: 3,
+          reps: '12',
+          rest: '60s',
+          notes: null,
+        },
+      ],
     };
     const workout = {
       id: 1,
       ...body,
+      exercisesCount: 1,
       studentId: 3,
       professionalId: 10,
     } as Workout;

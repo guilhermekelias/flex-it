@@ -74,6 +74,30 @@ function getMetricSummary(metric: Metric | null) {
   ];
 }
 
+function getStructuredWorkoutExercises(workout: Workout) {
+  return Array.isArray(workout.exercises)
+    ? workout.exercises.filter((exercise) => exercise.name.trim())
+    : [];
+}
+
+function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercises>[number]) {
+  const meta: string[] = [];
+
+  if (exercise.sets) {
+    meta.push(`${exercise.sets} series`);
+  }
+
+  if (exercise.reps) {
+    meta.push(`${exercise.reps} reps`);
+  }
+
+  if (exercise.rest) {
+    meta.push(`${exercise.rest} descanso`);
+  }
+
+  return meta.join(' | ');
+}
+
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
   const firstName = getFirstName(user.name);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -355,18 +379,41 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
               ) : workouts.length === 0 ? (
                 <p>Nenhum treino enviado pelo profissional ainda.</p>
               ) : (
-                workouts.map((workout) => (
-                  <article className="student-portal-note-item" key={workout.id}>
-                    <p>
-                      <strong>{workout.name}</strong>
-                      {workout.description ? ` - ${workout.description}` : ''}
-                    </p>
-                    <span>
-                      {workout.type} | {workout.durationMinutes} min |{' '}
-                      {workout.exercisesCount} exercicios
-                    </span>
-                  </article>
-                ))
+                workouts.map((workout) => {
+                  const workoutExercises = getStructuredWorkoutExercises(workout);
+
+                  return (
+                    <article className="student-portal-note-item" key={workout.id}>
+                      <p>
+                        <strong>{workout.name}</strong>
+                        {workout.description ? ` - ${workout.description}` : ''}
+                      </p>
+                      <span>
+                        {workout.type} | {workout.durationMinutes} min |{' '}
+                        {workout.exercisesCount} exercicios
+                      </span>
+
+                      {workoutExercises.length > 0 && (
+                        <div className="workout-exercise-summary-list">
+                          {workoutExercises.map((exercise, index) => {
+                            const exerciseMeta = getExerciseMeta(exercise);
+
+                            return (
+                              <div
+                                className="workout-exercise-summary-item"
+                                key={`${exercise.name}-${index}`}
+                              >
+                                <strong>{exercise.name}</strong>
+                                {exerciseMeta && <span>{exerciseMeta}</span>}
+                                {exercise.notes && <p>{exercise.notes}</p>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })
               )}
             </div>
           </article>
