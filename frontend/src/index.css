@@ -1909,7 +1909,7 @@ button {
 .student-portal-shell {
   min-height: 100vh;
   background:
-    linear-gradient(180deg, rgba(20, 83, 45, 0.1), rgba(248, 250, 252, 0) 300px),
+    linear-gradient(180deg, rgba(37, 99, 235, 0.1), rgba(248, 250, 252, 0) 300px),
     #f8fafc;
   color: #0f172a;
 }
@@ -1944,8 +1944,8 @@ button {
   height: 34px;
   place-items: center;
   border-radius: 50%;
-  background: #dcfce7;
-  color: #166534;
+  background: #dbeafe;
+  color: #1e3a8a;
 }
 
 .student-portal-logout {
@@ -1972,14 +1972,15 @@ button {
   overflow: hidden;
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(187, 247, 208, 0.18), rgba(255, 255, 255, 0) 58%),
-    linear-gradient(135deg, #14532d 0%, #2563eb 100%);
+    linear-gradient(135deg, rgba(219, 234, 254, 0.18), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
   color: #ffffff;
   padding: 18px;
-  box-shadow: 0 18px 40px rgba(20, 83, 45, 0.22);
+  box-shadow: 0 18px 40px rgba(30, 58, 138, 0.22);
 }
 
 .student-portal-hero h1,
+.student-portal-summary-heading h2,
 .student-portal-card h2 {
   margin: 0;
   letter-spacing: 0;
@@ -2009,7 +2010,7 @@ button {
 }
 
 .student-portal-hero .student-portal-kicker {
-  color: #bbf7d0;
+  color: #dbeafe;
 }
 
 .student-portal-checkin {
@@ -2034,6 +2035,143 @@ button {
   color: #ffffff;
   font-size: 1.2rem;
   line-height: 1.1;
+}
+
+.student-portal-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 12px -2px 0;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-width: none;
+}
+
+.student-portal-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.student-portal-tab {
+  flex: 0 0 auto;
+  min-height: 40px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 9px 13px;
+  white-space: nowrap;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.student-portal-tab:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.student-portal-tab:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.22);
+  outline-offset: 2px;
+}
+
+.student-portal-tab-active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2);
+}
+
+.student-portal-tab-active:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.student-portal-tab-panel {
+  min-width: 0;
+}
+
+.student-portal-summary {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin-top: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.student-portal-summary-heading {
+  min-width: 0;
+}
+
+.student-portal-summary-heading h2 {
+  color: #0f172a;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.student-portal-summary-heading p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.student-portal-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.student-portal-summary-stat {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #2563eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 11px 10px;
+}
+
+.student-portal-summary-stat span,
+.student-portal-summary-stat small {
+  display: block;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-portal-summary-stat strong {
+  display: block;
+  margin: 7px 0 4px;
+  color: #0f172a;
+  font-size: 1.36rem;
+  line-height: 1;
+}
+
+.student-portal-summary-stat-diet {
+  border-top-color: #16a34a;
+}
+
+.student-portal-summary-stat-metric {
+  border-top-color: #e11d48;
+}
+
+.student-portal-summary-stat-observation {
+  border-top-color: #f59e0b;
 }
 
 .student-portal-grid {
@@ -2424,6 +2562,7 @@ button {
     padding-inline: 10px;
   }
 
+  .student-portal-summary-grid,
   .student-portal-info-grid,
   .student-portal-metric-grid {
     grid-template-columns: 1fr;
@@ -2563,17 +2702,28 @@ button {
   }
 
   .student-portal-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     margin-top: 16px;
   }
 
-  .student-portal-card {
+  .student-portal-tabs {
+    margin-top: 16px;
+  }
+
+  .student-portal-summary {
+    grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
     padding: 18px;
   }
 
-  .student-portal-card-metrics,
-  .student-portal-card-message {
-    min-height: 250px;
+  .student-portal-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .student-portal-card {
+    padding: 18px;
   }
 }

@@ -20,6 +20,16 @@ type StudentPortalProps = {
   onSessionExpired: () => void;
 };
 
+type StudentPortalTab = 'summary' | 'workouts' | 'nutrition' | 'metrics' | 'observations';
+
+const STUDENT_PORTAL_TABS: Array<{ id: StudentPortalTab; label: string }> = [
+  { id: 'summary', label: 'Resumo' },
+  { id: 'workouts', label: 'Treinos' },
+  { id: 'nutrition', label: 'Dietas' },
+  { id: 'metrics', label: 'Metricas' },
+  { id: 'observations', label: 'Observacoes' },
+];
+
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
 }
@@ -129,6 +139,7 @@ function getNutritionFoodMeta(
 
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
   const firstName = getFirstName(user.name);
+  const [activeTab, setActiveTab] = useState<StudentPortalTab>('summary');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [workoutError, setWorkoutError] = useState('');
@@ -344,6 +355,70 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   const nutritionPlanNote = currentNutritionPlan
     ? `Atualizado em ${formatObservationDate(currentNutritionPlan.updatedAt)}`
     : nutritionPlanError || 'Seu profissional ainda nao cadastrou planos alimentares.';
+  const activeTabLabel =
+    STUDENT_PORTAL_TABS.find((tab) => tab.id === activeTab)?.label ?? 'Resumo';
+  const summaryCards = [
+    {
+      label: 'Treinos',
+      value: isLoadingWorkouts ? '...' : workoutError ? '--' : String(workouts.length),
+      detail: isLoadingWorkouts
+        ? 'Carregando'
+        : workoutError
+          ? 'Nao carregou'
+          : workouts.length === 1
+            ? 'treino cadastrado'
+            : 'treinos cadastrados',
+      modifier: 'student-portal-summary-stat-workout',
+    },
+    {
+      label: 'Dietas',
+      value: isLoadingNutritionPlans
+        ? '...'
+        : nutritionPlanError
+          ? '--'
+          : String(nutritionPlans.length),
+      detail: isLoadingNutritionPlans
+        ? 'Carregando'
+        : nutritionPlanError
+          ? 'Nao carregou'
+          : nutritionPlans.length === 1
+            ? 'plano cadastrado'
+            : 'planos cadastrados',
+      modifier: 'student-portal-summary-stat-diet',
+    },
+    {
+      label: 'Ultima metrica',
+      value: isLoadingMetrics
+        ? '...'
+        : metricError || !currentMetric
+          ? '--'
+          : formatMetricValue(currentMetric.weightKg, 'kg'),
+      detail: isLoadingMetrics
+        ? 'Carregando'
+        : metricError
+          ? 'Nao carregou'
+          : currentMetric
+            ? formatObservationDate(currentMetric.recordedAt)
+            : 'Sem registro',
+      modifier: 'student-portal-summary-stat-metric',
+    },
+    {
+      label: 'Observacoes',
+      value: isLoadingObservations
+        ? '...'
+        : observationError
+          ? '--'
+          : String(observations.length),
+      detail: isLoadingObservations
+        ? 'Carregando'
+        : observationError
+          ? 'Nao carregou'
+          : observations.length === 1
+            ? 'mensagem recebida'
+            : 'mensagens recebidas',
+      modifier: 'student-portal-summary-stat-observation',
+    },
+  ];
 
   return (
     <div className="student-portal-shell">
@@ -373,241 +448,312 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           </div>
         </section>
 
-        <section className="student-portal-grid" aria-label="Painel do aluno">
-          <article className="student-portal-card student-portal-card-workout">
-            <div className="student-portal-card-heading">
-              <span className="student-portal-kicker">Treinos atuais</span>
-              <h2>{workoutTitle}</h2>
-            </div>
+        <nav className="student-portal-tabs" aria-label="Areas do portal">
+          {STUDENT_PORTAL_TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
 
-            <div className="student-portal-info-grid">
-              <span>{currentWorkout ? currentWorkout.type : 'Aguardando plano'}</span>
-              <span>{currentWorkout ? `${currentWorkout.durationMinutes} min` : '-- min'}</span>
-              <span>
-                {currentWorkout ? `${currentWorkout.exercisesCount} exercicios` : '-- exercicios'}
-              </span>
-            </div>
+            return (
+              <button
+                aria-controls="student-portal-panel"
+                aria-pressed={isActive}
+                className={`student-portal-tab${isActive ? ' student-portal-tab-active' : ''}`}
+                id={`student-portal-tab-${tab.id}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
 
-            <div className="student-portal-progress">
-              <div>
-                <span>Treinos cadastrados</span>
-                <strong>{workouts.length}</strong>
+        <section
+          aria-label={`Conteudo de ${activeTabLabel}`}
+          aria-labelledby={`student-portal-tab-${activeTab}`}
+          className="student-portal-tab-panel"
+          id="student-portal-panel"
+        >
+          {activeTab === 'summary' && (
+            <section className="student-portal-summary" aria-label="Resumo do aluno">
+              <div className="student-portal-summary-heading">
+                <span className="student-portal-kicker">Resumo</span>
+                <h2>Ola, {firstName}</h2>
+                <p>Seu acompanhamento em numeros.</p>
               </div>
-              <div className="student-portal-progress-track" aria-hidden="true">
-                <span style={{ width: `${workoutProgress}%` }} />
+
+              <div className="student-portal-summary-grid">
+                {summaryCards.map((card) => (
+                  <article
+                    className={`student-portal-summary-stat ${card.modifier}`}
+                    key={card.label}
+                  >
+                    <span>{card.label}</span>
+                    <strong>{card.value}</strong>
+                    <small>{card.detail}</small>
+                  </article>
+                ))}
               </div>
-            </div>
+            </section>
+          )}
 
-            <p className="student-portal-card-note">{workoutNote}</p>
+          {activeTab === 'workouts' && (
+            <section className="student-portal-grid" aria-label="Treinos do aluno">
+              <article className="student-portal-card student-portal-card-workout">
+                <div className="student-portal-card-heading">
+                  <span className="student-portal-kicker">Treinos atuais</span>
+                  <h2>{workoutTitle}</h2>
+                </div>
 
-            <div className="student-portal-note-list">
-              {isLoadingWorkouts ? (
-                <p>Carregando treinos...</p>
-              ) : workoutError ? (
-                <p>{workoutError}</p>
-              ) : workouts.length === 0 ? (
-                <p>Nenhum treino enviado pelo profissional ainda.</p>
-              ) : (
-                workouts.map((workout) => {
-                  const workoutExercises = getStructuredWorkoutExercises(workout);
+                <div className="student-portal-info-grid">
+                  <span>{currentWorkout ? currentWorkout.type : 'Aguardando plano'}</span>
+                  <span>{currentWorkout ? `${currentWorkout.durationMinutes} min` : '-- min'}</span>
+                  <span>
+                    {currentWorkout
+                      ? `${currentWorkout.exercisesCount} exercicios`
+                      : '-- exercicios'}
+                  </span>
+                </div>
 
-                  return (
-                    <article className="student-portal-note-item" key={workout.id}>
-                      <p>
-                        <strong>{workout.name}</strong>
-                        {workout.description ? ` - ${workout.description}` : ''}
-                      </p>
-                      <span>
-                        {workout.type} | {workout.durationMinutes} min |{' '}
-                        {workout.exercisesCount} exercicios
-                      </span>
+                <div className="student-portal-progress">
+                  <div>
+                    <span>Treinos cadastrados</span>
+                    <strong>{workouts.length}</strong>
+                  </div>
+                  <div className="student-portal-progress-track" aria-hidden="true">
+                    <span style={{ width: `${workoutProgress}%` }} />
+                  </div>
+                </div>
 
-                      {workoutExercises.length > 0 && (
-                        <div className="workout-exercise-summary-list">
-                          {workoutExercises.map((exercise, index) => {
-                            const exerciseMeta = getExerciseMeta(exercise);
+                <p className="student-portal-card-note">{workoutNote}</p>
 
-                            return (
-                              <div
-                                className="workout-exercise-summary-item"
-                                key={`${exercise.name}-${index}`}
-                              >
-                                <strong>{exercise.name}</strong>
-                                {exerciseMeta && <span>{exerciseMeta}</span>}
-                                {exercise.notes && <p>{exercise.notes}</p>}
-                              </div>
-                            );
-                          })}
+                <div className="student-portal-note-list">
+                  {isLoadingWorkouts ? (
+                    <p>Carregando treinos...</p>
+                  ) : workoutError ? (
+                    <p>{workoutError}</p>
+                  ) : workouts.length === 0 ? (
+                    <p>Nenhum treino enviado pelo profissional ainda.</p>
+                  ) : (
+                    workouts.map((workout) => {
+                      const workoutExercises = getStructuredWorkoutExercises(workout);
+
+                      return (
+                        <article className="student-portal-note-item" key={workout.id}>
+                          <p>
+                            <strong>{workout.name}</strong>
+                            {workout.description ? ` - ${workout.description}` : ''}
+                          </p>
+                          <span>
+                            {workout.type} | {workout.durationMinutes} min |{' '}
+                            {workout.exercisesCount} exercicios
+                          </span>
+
+                          {workoutExercises.length > 0 && (
+                            <div className="workout-exercise-summary-list">
+                              {workoutExercises.map((exercise, index) => {
+                                const exerciseMeta = getExerciseMeta(exercise);
+
+                                return (
+                                  <div
+                                    className="workout-exercise-summary-item"
+                                    key={`${exercise.name}-${index}`}
+                                  >
+                                    <strong>{exercise.name}</strong>
+                                    {exerciseMeta && <span>{exerciseMeta}</span>}
+                                    {exercise.notes && <p>{exercise.notes}</p>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </article>
+            </section>
+          )}
+
+          {activeTab === 'nutrition' && (
+            <section className="student-portal-grid" aria-label="Dietas do aluno">
+              <article className="student-portal-card student-portal-card-diet">
+                <div className="student-portal-card-heading">
+                  <span className="student-portal-kicker">Dieta atual</span>
+                  <h2>{nutritionPlanTitle}</h2>
+                </div>
+
+                <div className="student-portal-info-grid">
+                  <span>
+                    {currentNutritionPlan ? `${currentNutritionPlan.calories} kcal` : '-- kcal'}
+                  </span>
+                  <span>
+                    {currentNutritionPlan
+                      ? `${currentNutritionPlan.mealsCount} refeicoes`
+                      : '-- refeicoes'}
+                  </span>
+                  <span>
+                    {currentNutritionPlan ? currentNutritionPlan.objective : 'Aguardando plano'}
+                  </span>
+                </div>
+
+                <div className="student-portal-progress">
+                  <div>
+                    <span>Planos cadastrados</span>
+                    <strong>{nutritionPlans.length}</strong>
+                  </div>
+                  <div
+                    className="student-portal-progress-track student-portal-progress-track-green"
+                    aria-hidden="true"
+                  >
+                    <span style={{ width: `${nutritionPlanProgress}%` }} />
+                  </div>
+                </div>
+
+                <p className="student-portal-card-note">{nutritionPlanNote}</p>
+
+                <div className="student-portal-note-list">
+                  {isLoadingNutritionPlans ? (
+                    <p>Carregando planos alimentares...</p>
+                  ) : nutritionPlanError ? (
+                    <p>{nutritionPlanError}</p>
+                  ) : nutritionPlans.length === 0 ? (
+                    <p>Nenhum plano alimentar enviado pelo profissional ainda.</p>
+                  ) : (
+                    nutritionPlans.map((nutritionPlan) => {
+                      const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
+
+                      return (
+                        <article className="student-portal-note-item" key={nutritionPlan.id}>
+                          <p>
+                            <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
+                          </p>
+                          <span>
+                            {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount}{' '}
+                            refeicoes | {nutritionPlan.proteinGrams}g P /{' '}
+                            {nutritionPlan.carbsGrams}g C / {nutritionPlan.fatGrams}g G
+                          </span>
+
+                          {nutritionPlanMeals.length > 0 && (
+                            <div className="nutrition-meal-summary-list">
+                              {nutritionPlanMeals.map((meal, mealIndex) => (
+                                <section
+                                  className="nutrition-meal-summary-item"
+                                  key={`${meal.name}-${mealIndex}`}
+                                >
+                                  <div className="nutrition-meal-summary-heading">
+                                    <strong>{meal.name}</strong>
+                                    {meal.time && <span>{meal.time}</span>}
+                                  </div>
+
+                                  <div className="nutrition-food-summary-list">
+                                    {meal.foods.map((food, foodIndex) => {
+                                      const foodMeta = getNutritionFoodMeta(food);
+
+                                      return (
+                                        <div
+                                          className="nutrition-food-summary-item"
+                                          key={`${food.name}-${foodIndex}`}
+                                        >
+                                          <strong>{food.name}</strong>
+                                          {foodMeta && <span>{foodMeta}</span>}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+                              ))}
+                            </div>
+                          )}
+
+                          {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+                        </article>
+                      );
+                    })
+                  )}
+                </div>
+              </article>
+            </section>
+          )}
+
+          {activeTab === 'metrics' && (
+            <section className="student-portal-grid" aria-label="Metricas do aluno">
+              <article className="student-portal-card student-portal-card-metrics">
+                <div className="student-portal-card-heading">
+                  <span className="student-portal-kicker">Metricas principais</span>
+                  <h2>{isLoadingMetrics ? 'Carregando metricas...' : 'Evolucao recente'}</h2>
+                </div>
+
+                {metricError ? (
+                  <p className="student-portal-card-note">{metricError}</p>
+                ) : metrics.length === 0 && !isLoadingMetrics ? (
+                  <p className="student-portal-card-note">
+                    Seu profissional ainda nao registrou metricas.
+                  </p>
+                ) : (
+                  <>
+                    <div className="student-portal-metric-grid">
+                      {mainMetrics.map((metric) => (
+                        <div key={metric.label}>
+                          <span>{metric.label}</span>
+                          <strong>{metric.value}</strong>
+                          <small>{metric.detail}</small>
                         </div>
-                      )}
-                    </article>
-                  );
-                })
-              )}
-            </div>
-          </article>
-
-          <article className="student-portal-card student-portal-card-diet">
-            <div className="student-portal-card-heading">
-              <span className="student-portal-kicker">Dieta atual</span>
-              <h2>{nutritionPlanTitle}</h2>
-            </div>
-
-            <div className="student-portal-info-grid">
-              <span>
-                {currentNutritionPlan ? `${currentNutritionPlan.calories} kcal` : '-- kcal'}
-              </span>
-              <span>
-                {currentNutritionPlan
-                  ? `${currentNutritionPlan.mealsCount} refeicoes`
-                  : '-- refeicoes'}
-              </span>
-              <span>{currentNutritionPlan ? currentNutritionPlan.objective : 'Aguardando plano'}</span>
-            </div>
-
-            <div className="student-portal-progress">
-              <div>
-                <span>Planos cadastrados</span>
-                <strong>{nutritionPlans.length}</strong>
-              </div>
-              <div className="student-portal-progress-track student-portal-progress-track-green" aria-hidden="true">
-                <span style={{ width: `${nutritionPlanProgress}%` }} />
-              </div>
-            </div>
-
-            <p className="student-portal-card-note">{nutritionPlanNote}</p>
-
-            <div className="student-portal-note-list">
-              {isLoadingNutritionPlans ? (
-                <p>Carregando planos alimentares...</p>
-              ) : nutritionPlanError ? (
-                <p>{nutritionPlanError}</p>
-              ) : nutritionPlans.length === 0 ? (
-                <p>Nenhum plano alimentar enviado pelo profissional ainda.</p>
-              ) : (
-                nutritionPlans.map((nutritionPlan) => {
-                  const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
-
-                  return (
-                    <article className="student-portal-note-item" key={nutritionPlan.id}>
-                      <p>
-                        <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
-                      </p>
-                      <span>
-                        {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount} refeicoes |{' '}
-                        {nutritionPlan.proteinGrams}g P / {nutritionPlan.carbsGrams}g C /{' '}
-                        {nutritionPlan.fatGrams}g G
-                      </span>
-
-                      {nutritionPlanMeals.length > 0 && (
-                        <div className="nutrition-meal-summary-list">
-                          {nutritionPlanMeals.map((meal, mealIndex) => (
-                            <section
-                              className="nutrition-meal-summary-item"
-                              key={`${meal.name}-${mealIndex}`}
-                            >
-                              <div className="nutrition-meal-summary-heading">
-                                <strong>{meal.name}</strong>
-                                {meal.time && <span>{meal.time}</span>}
-                              </div>
-
-                              <div className="nutrition-food-summary-list">
-                                {meal.foods.map((food, foodIndex) => {
-                                  const foodMeta = getNutritionFoodMeta(food);
-
-                                  return (
-                                    <div
-                                      className="nutrition-food-summary-item"
-                                      key={`${food.name}-${foodIndex}`}
-                                    >
-                                      <strong>{food.name}</strong>
-                                      {foodMeta && <span>{foodMeta}</span>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </section>
-                          ))}
-                        </div>
-                      )}
-
-                      {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
-                    </article>
-                  );
-                })
-              )}
-            </div>
-          </article>
-
-          <article className="student-portal-card student-portal-card-metrics">
-            <div className="student-portal-card-heading">
-              <span className="student-portal-kicker">Metricas principais</span>
-              <h2>{isLoadingMetrics ? 'Carregando metricas...' : 'Evolucao recente'}</h2>
-            </div>
-
-            {metricError ? (
-              <p className="student-portal-card-note">{metricError}</p>
-            ) : metrics.length === 0 && !isLoadingMetrics ? (
-              <p className="student-portal-card-note">
-                Seu profissional ainda nao registrou metricas.
-              </p>
-            ) : (
-              <>
-                <div className="student-portal-metric-grid">
-                  {mainMetrics.map((metric) => (
-                    <div key={metric.label}>
-                      <span>{metric.label}</span>
-                      <strong>{metric.value}</strong>
-                      <small>{metric.detail}</small>
+                      ))}
                     </div>
-                  ))}
+
+                    <div className="student-portal-note-list">
+                      {isLoadingMetrics ? (
+                        <p>Carregando metricas...</p>
+                      ) : (
+                        metrics.slice(0, 4).map((metric) => (
+                          <article className="student-portal-note-item" key={metric.id}>
+                            <p>
+                              <strong>{formatObservationDate(metric.recordedAt)}</strong>
+                              {metric.notes ? ` - ${metric.notes}` : ''}
+                            </p>
+                            <span>
+                              Peso {formatMetricValue(metric.weightKg, 'kg')} | IMC{' '}
+                              {calculateBmi(metric.weightKg, metric.heightCm)}
+                            </span>
+                          </article>
+                        ))
+                      )}
+                    </div>
+                  </>
+                )}
+              </article>
+            </section>
+          )}
+
+          {activeTab === 'observations' && (
+            <section className="student-portal-grid" aria-label="Observacoes do aluno">
+              <article className="student-portal-card student-portal-card-message">
+                <div className="student-portal-card-heading">
+                  <span className="student-portal-kicker">Comunicacao</span>
+                  <h2>Observacoes do profissional</h2>
                 </div>
 
                 <div className="student-portal-note-list">
-                  {isLoadingMetrics ? (
-                    <p>Carregando metricas...</p>
+                  {isLoadingObservations ? (
+                    <p>Carregando observacoes...</p>
+                  ) : observationError ? (
+                    <p>{observationError}</p>
+                  ) : observations.length === 0 ? (
+                    <p>Nenhuma observacao enviada pelo profissional ainda.</p>
                   ) : (
-                    metrics.slice(0, 4).map((metric) => (
-                      <article className="student-portal-note-item" key={metric.id}>
-                        <p>
-                          <strong>{formatObservationDate(metric.recordedAt)}</strong>
-                          {metric.notes ? ` - ${metric.notes}` : ''}
-                        </p>
-                        <span>
-                          Peso {formatMetricValue(metric.weightKg, 'kg')} | IMC{' '}
-                          {calculateBmi(metric.weightKg, metric.heightCm)}
-                        </span>
+                    observations.map((observation) => (
+                      <article className="student-portal-note-item" key={observation.id}>
+                        <p>{observation.message}</p>
+                        <span>{formatObservationDate(observation.createdAt)}</span>
                       </article>
                     ))
                   )}
                 </div>
-              </>
-            )}
-          </article>
-
-          <article className="student-portal-card student-portal-card-message">
-            <div className="student-portal-card-heading">
-              <span className="student-portal-kicker">Comunicacao</span>
-              <h2>Observacoes do profissional</h2>
-            </div>
-
-            <div className="student-portal-note-list">
-              {isLoadingObservations ? (
-                <p>Carregando observacoes...</p>
-              ) : observationError ? (
-                <p>{observationError}</p>
-              ) : observations.length === 0 ? (
-                <p>Nenhuma observacao enviada pelo profissional ainda.</p>
-              ) : (
-                observations.map((observation) => (
-                  <article className="student-portal-note-item" key={observation.id}>
-                    <p>{observation.message}</p>
-                    <span>{formatObservationDate(observation.createdAt)}</span>
-                  </article>
-                ))
-              )}
-            </div>
-          </article>
+              </article>
+            </section>
+          )}
         </section>
       </main>
     </div>
