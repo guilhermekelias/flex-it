@@ -9,6 +9,11 @@ import {
 import { Student } from '../../students/entities/student.entity';
 import { User } from '../../users/entities/user.entity';
 
+export enum ObservationSenderRole {
+  PROFESSIONAL = 'professional',
+  STUDENT = 'student',
+}
+
 @Entity('observations')
 export class Observation {
   @PrimaryGeneratedColumn()
@@ -30,6 +35,14 @@ export class Observation {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'professional_id' })
   professional: User;
+
+  @Column({
+    name: 'sender_role',
+    type: 'enum',
+    enum: ObservationSenderRole,
+    default: ObservationSenderRole.PROFESSIONAL,
+  })
+  senderRole: ObservationSenderRole;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

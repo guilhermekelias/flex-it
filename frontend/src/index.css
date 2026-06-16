@@ -1284,17 +1284,20 @@ button {
   gap: 9px;
 }
 
-.student-detail-observation-form {
+.student-detail-observation-form,
+.student-portal-observation-form {
   display: grid;
   gap: 10px;
 }
 
-.student-detail-observation-form label {
+.student-detail-observation-form label,
+.student-portal-observation-form label {
   display: grid;
   gap: 6px;
 }
 
-.student-detail-observation-form label span {
+.student-detail-observation-form label span,
+.student-portal-observation-form label span {
   color: #334155;
   font-size: 0.86rem;
   font-weight: 800;
@@ -1327,12 +1330,121 @@ button {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
 }
 
+.student-detail-observation-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .student-detail-observation-feedback {
   margin: 0;
   color: #475569;
   font-size: 0.84rem;
   font-weight: 800;
   line-height: 1.4;
+}
+
+.student-detail-chat-list,
+.student-portal-chat-list,
+.student-portal-chat-thread-list,
+.student-portal-chat-thread {
+  display: grid;
+  gap: 10px;
+}
+
+.student-detail-chat-list,
+.student-portal-chat-list {
+  max-height: min(46vh, 430px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.student-portal-chat-list {
+  max-height: min(42vh, 380px);
+}
+
+.student-portal-chat-thread-list {
+  gap: 16px;
+}
+
+.student-portal-chat-thread {
+  gap: 12px;
+}
+
+.student-portal-chat-thread-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding-bottom: 8px;
+}
+
+.student-detail-chat-list > p,
+.student-portal-chat-list > p,
+.student-portal-chat-thread-list > p {
+  margin: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 11px 12px;
+}
+
+.student-detail-chat-message,
+.student-portal-chat-message {
+  display: grid;
+  gap: 7px;
+  width: fit-content;
+  max-width: min(86%, 520px);
+  border-radius: 8px;
+  color: #334155;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 11px 12px;
+}
+
+.student-detail-chat-message p,
+.student-portal-chat-message p {
+  margin: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.student-detail-chat-message-professional,
+.student-portal-chat-message-student {
+  justify-self: end;
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.student-detail-chat-message-student,
+.student-portal-chat-message-professional {
+  justify-self: start;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.student-detail-chat-meta,
+.student-portal-chat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.student-detail-chat-meta strong,
+.student-portal-chat-meta strong {
+  color: inherit;
 }
 
 .student-detail-note-list > p,
@@ -2474,6 +2586,11 @@ button {
 
   .nutrition-food-summary-item span {
     text-align: left;
+  }
+
+  .student-detail-chat-list,
+  .student-portal-chat-list {
+    max-height: 320px;
   }
 }
 
