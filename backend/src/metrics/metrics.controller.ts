@@ -86,7 +86,7 @@ export class MetricsController {
       throw new ForbiddenException('Apenas alunos podem visualizar suas metricas');
     }
 
-    return this.metricsService.findForStudentUser(request.user.email);
+    return this.metricsService.findForStudentUser(request.user.sub);
   }
 
   private getProfessionalId(request: AuthenticatedRequest): number {

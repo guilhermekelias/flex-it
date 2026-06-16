@@ -1,11 +1,6 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Raw, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Student } from '../students/entities/student.entity';
 import { NutritionPlan } from './entities/nutrition-plan.entity';
 
@@ -132,18 +127,10 @@ export class NutritionPlansService {
     }
   }
 
-  async findForStudentUser(email: string): Promise<NutritionPlan[]> {
-    const normalizedEmail = this.normalizeEmail(email);
-
-    if (!normalizedEmail) {
-      throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
-    }
-
+  async findForStudentUser(userId: number): Promise<NutritionPlan[]> {
     const students = await this.studentsRepository.find({
       where: {
-        email: Raw((alias) => `LOWER(TRIM(${alias})) = :email`, {
-          email: normalizedEmail,
-        }),
+        userId,
       },
     });
 
@@ -151,13 +138,11 @@ export class NutritionPlansService {
       throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
     }
 
-    if (students.length > 1) {
-      throw new ForbiddenException('Aluno vinculado ao usuario de forma ambigua');
-    }
+    const studentIds = students.map((student) => student.id);
 
     return this.nutritionPlansRepository.find({
       where: {
-        studentId: students[0].id,
+        studentId: In(studentIds),
       },
       order: {
         updatedAt: 'DESC',
@@ -335,10 +320,6 @@ export class NutritionPlansService {
     };
 
     return messages[field];
-  }
-
-  private normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
   }
 
   private async findProfessionalStudentOrFail(

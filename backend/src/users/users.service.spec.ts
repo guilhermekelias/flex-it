@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { Student } from '../students/entities/student.entity';
 import { UsersService } from './users.service';
 import { User, UserRole } from './entities/user.entity';
 
@@ -15,9 +17,15 @@ type MockJwtService = {
   signAsync: jest.Mock;
 };
 
+type MockStudentsRepository = {
+  find: jest.Mock;
+  save: jest.Mock;
+};
+
 describe('UsersService', () => {
   let service: UsersService;
   let usersRepository: MockUsersRepository;
+  let studentsRepository: MockStudentsRepository;
   let jwtService: MockJwtService;
 
   beforeEach(async () => {
@@ -27,9 +35,15 @@ describe('UsersService', () => {
       find: jest.fn(),
       findOne: jest.fn(),
     };
+    studentsRepository = {
+      find: jest.fn(),
+      save: jest.fn(),
+    };
     jwtService = {
       signAsync: jest.fn().mockResolvedValue('valid-jwt-token'),
     };
+    usersRepository.findOne.mockResolvedValue(null);
+    studentsRepository.find.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,6 +51,10 @@ describe('UsersService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: usersRepository,
+        },
+        {
+          provide: getRepositoryToken(Student),
+          useValue: studentsRepository,
         },
         {
           provide: JwtService,
@@ -75,6 +93,84 @@ describe('UsersService', () => {
     expect(result).not.toHaveProperty('password');
     expect(usersRepository.create).toHaveBeenCalledWith(data);
     expect(usersRepository.save).toHaveBeenCalledWith(user);
+    expect(studentsRepository.find).not.toHaveBeenCalled();
+  });
+
+  it('should link pending students when creating a student user', async () => {
+    const data = {
+      name: 'Ana Silva',
+      email: ' ANA@example.com ',
+      password: '123456',
+      role: UserRole.STUDENT,
+    };
+    const pendingStudents = [
+      { id: 1, email: 'ana@example.com', userId: null },
+      { id: 2, email: 'ana@example.com', userId: null },
+    ] as Student[];
+    const user = {
+      id: 2,
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      password: '123456',
+      role: UserRole.STUDENT,
+    } as User;
+
+    usersRepository.create.mockReturnValue(user);
+    usersRepository.save.mockResolvedValue(user);
+    studentsRepository.find.mockResolvedValue(pendingStudents);
+
+    await expect(service.create(data)).resolves.toEqual({
+      id: 2,
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      role: UserRole.STUDENT,
+    });
+    expect(usersRepository.create).toHaveBeenCalledWith({
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      password: '123456',
+      role: UserRole.STUDENT,
+    });
+    expect(studentsRepository.find).toHaveBeenCalledWith({
+      where: {
+        userId: expect.any(Object),
+        email: expect.any(Object),
+      },
+    });
+    expect(studentsRepository.save).toHaveBeenCalledWith([
+      { id: 1, email: 'ana@example.com', userId: 2 },
+      { id: 2, email: 'ana@example.com', userId: 2 },
+    ]);
+  });
+
+  it('should reject duplicate user email', async () => {
+    usersRepository.findOne.mockResolvedValue({
+      id: 1,
+      email: 'ana@example.com',
+      role: UserRole.STUDENT,
+    });
+
+    await expect(
+      service.create({
+        name: 'Ana Silva',
+        email: 'ana@example.com',
+        password: '123456',
+        role: UserRole.STUDENT,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(usersRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('should reject invalid user role', async () => {
+    await expect(
+      service.create({
+        name: 'Ana Silva',
+        email: 'ana@example.com',
+        password: '123456',
+        role: 'admin',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(usersRepository.findOne).not.toHaveBeenCalled();
   });
 
   it('should return all users without passwords', async () => {
@@ -126,7 +222,9 @@ describe('UsersService', () => {
 
     await expect(service.findByEmail('patricia@example.com')).resolves.toEqual(user);
     expect(usersRepository.findOne).toHaveBeenCalledWith({
-      where: { email: 'patricia@example.com' },
+      where: {
+        email: expect.any(Object),
+      },
     });
   });
 

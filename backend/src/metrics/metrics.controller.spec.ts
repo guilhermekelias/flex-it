@@ -178,7 +178,7 @@ describe('MetricsController', () => {
     metricsService.findForStudentUser.mockResolvedValue(metrics);
 
     await expect(controller.findForCurrentStudent(studentRequest)).resolves.toEqual(metrics);
-    expect(metricsService.findForStudentUser).toHaveBeenCalledWith('ana@example.com');
+    expect(metricsService.findForStudentUser).toHaveBeenCalledWith(20);
   });
 
   it('should reject professional users from the student metric route', () => {

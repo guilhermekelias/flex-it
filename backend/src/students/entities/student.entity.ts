@@ -24,4 +24,11 @@ export class Student {
   @ManyToOne(() => User, (user) => user.students, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'professional_id' })
   professional: User | null;
+
+  @Column({ name: 'user_id', nullable: true })
+  userId: number | null;
+
+  @ManyToOne(() => User, (user) => user.linkedStudents, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'user_id' })
+  user: User | null;
 }

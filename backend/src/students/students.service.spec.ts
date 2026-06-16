@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { User, UserRole } from '../users/entities/user.entity';
 import { StudentsService } from './students.service';
 import { Student } from './entities/student.entity';
 
@@ -12,9 +13,14 @@ type MockStudentsRepository = {
   delete: jest.Mock;
 };
 
+type MockUsersRepository = {
+  findOne: jest.Mock;
+};
+
 describe('StudentsService', () => {
   let service: StudentsService;
   let studentsRepository: MockStudentsRepository;
+  let usersRepository: MockUsersRepository;
 
   beforeEach(async () => {
     studentsRepository = {
@@ -24,6 +30,10 @@ describe('StudentsService', () => {
       findOne: jest.fn(),
       delete: jest.fn(),
     };
+    usersRepository = {
+      findOne: jest.fn(),
+    };
+    usersRepository.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -31,6 +41,10 @@ describe('StudentsService', () => {
         {
           provide: getRepositoryToken(Student),
           useValue: studentsRepository,
+        },
+        {
+          provide: getRepositoryToken(User),
+          useValue: usersRepository,
         },
       ],
     }).compile();
@@ -58,8 +72,67 @@ describe('StudentsService', () => {
     expect(studentsRepository.create).toHaveBeenCalledWith({
       ...data,
       professionalId: 10,
+      userId: null,
     });
     expect(studentsRepository.save).toHaveBeenCalledWith(student);
+  });
+
+  it('should create a student linked to an existing student user with the same email', async () => {
+    const data: Partial<Student> = {
+      name: 'Ana Silva',
+      email: ' ANA@example.com ',
+      age: 28,
+      goal: 'Hipertrofia',
+    };
+    const user = {
+      id: 20,
+      email: 'ana@example.com',
+      role: UserRole.STUDENT,
+    } as User;
+    const student = {
+      id: 1,
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      age: 28,
+      goal: 'Hipertrofia',
+      professionalId: 10,
+      userId: 20,
+    } as Student;
+
+    usersRepository.findOne.mockResolvedValue(user);
+    studentsRepository.create.mockReturnValue(student);
+    studentsRepository.save.mockResolvedValue(student);
+
+    await expect(service.create(data, 10)).resolves.toEqual(student);
+    expect(studentsRepository.create).toHaveBeenCalledWith({
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      age: 28,
+      goal: 'Hipertrofia',
+      professionalId: 10,
+      userId: 20,
+    });
+  });
+
+  it('should reject student creation when the email belongs to a professional user', async () => {
+    usersRepository.findOne.mockResolvedValue({
+      id: 30,
+      email: 'patricia@example.com',
+      role: UserRole.PROFESSIONAL,
+    });
+
+    await expect(
+      service.create(
+        {
+          name: 'Ana Silva',
+          email: 'patricia@example.com',
+          age: 28,
+          goal: 'Hipertrofia',
+        },
+        10,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(studentsRepository.create).not.toHaveBeenCalled();
   });
 
   it('should ignore professional fields sent in the payload when creating a student', async () => {
@@ -89,6 +162,7 @@ describe('StudentsService', () => {
       age: 28,
       goal: 'Hipertrofia',
       professionalId: 10,
+      userId: null,
     });
   });
 
@@ -147,6 +221,37 @@ describe('StudentsService', () => {
         professionalId: 10,
       },
     });
+    expect(studentsRepository.save).toHaveBeenCalledWith(updatedStudent);
+  });
+
+  it('should update the student user link when the email changes', async () => {
+    const existingStudent = {
+      id: 1,
+      name: 'Ana Silva',
+      email: 'ana@example.com',
+      age: 28,
+      goal: 'Hipertrofia',
+      professionalId: 10,
+      userId: null,
+    } as Student;
+    const user = {
+      id: 20,
+      email: 'novo@example.com',
+      role: UserRole.STUDENT,
+    } as User;
+    const updatedStudent = {
+      ...existingStudent,
+      email: 'novo@example.com',
+      userId: 20,
+    } as Student;
+
+    studentsRepository.findOne.mockResolvedValue(existingStudent);
+    usersRepository.findOne.mockResolvedValue(user);
+    studentsRepository.save.mockResolvedValue(updatedStudent);
+
+    await expect(service.update(1, { email: 'novo@example.com' }, 10)).resolves.toEqual(
+      updatedStudent,
+    );
     expect(studentsRepository.save).toHaveBeenCalledWith(updatedStudent);
   });
 

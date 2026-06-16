@@ -90,7 +90,7 @@ export class WorkoutsController {
       throw new ForbiddenException('Apenas alunos podem visualizar seus treinos');
     }
 
-    return this.workoutsService.findForStudentUser(request.user.email);
+    return this.workoutsService.findForStudentUser(request.user.sub);
   }
 
   private getProfessionalId(request: AuthenticatedRequest): number {

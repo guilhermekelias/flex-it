@@ -93,7 +93,7 @@ export class NutritionPlansController {
       throw new ForbiddenException('Apenas alunos podem visualizar seus planos alimentares');
     }
 
-    return this.nutritionPlansService.findForStudentUser(request.user.email);
+    return this.nutritionPlansService.findForStudentUser(request.user.sub);
   }
 
   private getProfessionalId(request: AuthenticatedRequest): number {

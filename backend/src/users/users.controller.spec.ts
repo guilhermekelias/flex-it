@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { User, UserRole } from './entities/user.entity';
@@ -8,6 +10,24 @@ type MockUsersService = {
   findAll: jest.Mock;
   login: jest.Mock;
 };
+
+type ControllerRequest = Parameters<UsersController['findAll']>[0];
+
+const professionalRequest = {
+  user: {
+    sub: 10,
+    email: 'patricia@example.com',
+    role: UserRole.PROFESSIONAL,
+  },
+} as ControllerRequest;
+
+const studentRequest = {
+  user: {
+    sub: 20,
+    email: 'ana@example.com',
+    role: UserRole.STUDENT,
+  },
+} as ControllerRequest;
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -26,6 +46,12 @@ describe('UsersController', () => {
         {
           provide: UsersService,
           useValue: usersService,
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            verifyAsync: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -69,8 +95,13 @@ describe('UsersController', () => {
 
     usersService.findAll.mockResolvedValue(users);
 
-    await expect(controller.findAll()).resolves.toEqual(users);
+    await expect(controller.findAll(professionalRequest)).resolves.toEqual(users);
     expect(usersService.findAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject student users from listing users', () => {
+    expect(() => controller.findAll(studentRequest)).toThrow(ForbiddenException);
+    expect(usersService.findAll).not.toHaveBeenCalled();
   });
 
   it('should call service to login', async () => {

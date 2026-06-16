@@ -1,0 +1,132 @@
+import type { JSX } from 'preact';
+import { useState } from 'preact/hooks';
+import type { RegisterPayload, UserRole } from '../services/api';
+
+type RegisterPageProps = {
+  message: string;
+  onBackToLogin: () => void;
+  onSubmit: (payload: RegisterPayload) => void;
+};
+
+export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageProps) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('professional');
+
+  const handleSubmit = (event: JSX.TargetedEvent<HTMLFormElement, Event>) => {
+    event.preventDefault();
+
+    onSubmit({
+      name,
+      email,
+      password,
+      role,
+    });
+  };
+
+  return (
+    <main className="login-shell">
+      <section className="login-panel" aria-labelledby="register-title">
+        <div className="login-brand">
+          <div className="login-brand-mark" aria-hidden="true">
+            F
+          </div>
+          <p className="login-eyebrow">FlexIt PWA</p>
+          <h1 id="register-title">Crie sua conta</h1>
+          <p className="login-subtitle">
+            Escolha seu perfil para acessar o ambiente correto no FlexIt.
+          </p>
+        </div>
+
+        <div className="login-card">
+          <div className="login-card-header">
+            <h2>Cadastro</h2>
+            <p>Use o mesmo e-mail informado pelo profissional para vincular sua conta de aluno.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <label className="login-field">
+              <span>Nome</span>
+              <input
+                type="text"
+                placeholder="Seu nome"
+                value={name}
+                autoComplete="name"
+                onInput={(event) => setName((event.target as HTMLInputElement).value)}
+                className="login-input"
+                required
+              />
+            </label>
+
+            <label className="login-field">
+              <span>E-mail</span>
+              <input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                autoComplete="email"
+                onInput={(event) => setEmail((event.target as HTMLInputElement).value)}
+                className="login-input"
+                required
+              />
+            </label>
+
+            <label className="login-field">
+              <span>Senha</span>
+              <input
+                type="password"
+                placeholder="Crie uma senha"
+                value={password}
+                autoComplete="new-password"
+                onInput={(event) => setPassword((event.target as HTMLInputElement).value)}
+                className="login-input"
+                required
+              />
+            </label>
+
+            <fieldset className="register-role-field">
+              <legend>Tipo de conta</legend>
+              <div className="register-role-group">
+                <button
+                  type="button"
+                  className={`register-role-option ${
+                    role === 'professional' ? 'register-role-option-active' : ''
+                  }`}
+                  aria-pressed={role === 'professional'}
+                  onClick={() => setRole('professional')}
+                >
+                  Profissional
+                </button>
+                <button
+                  type="button"
+                  className={`register-role-option ${
+                    role === 'student' ? 'register-role-option-active' : ''
+                  }`}
+                  aria-pressed={role === 'student'}
+                  onClick={() => setRole('student')}
+                >
+                  Aluno
+                </button>
+              </div>
+            </fieldset>
+
+            <button type="submit" className="login-button">
+              Criar conta
+            </button>
+          </form>
+
+          {message && (
+            <p className="login-message" role="alert">
+              {message}
+            </p>
+          )}
+
+          <button className="auth-switch-button" onClick={onBackToLogin} type="button">
+            Ja tenho conta
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}

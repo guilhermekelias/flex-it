@@ -183,7 +183,7 @@ describe('NutritionPlansController', () => {
     await expect(controller.findForCurrentStudent(studentRequest)).resolves.toEqual(
       nutritionPlans,
     );
-    expect(nutritionPlansService.findForStudentUser).toHaveBeenCalledWith('ana@example.com');
+    expect(nutritionPlansService.findForStudentUser).toHaveBeenCalledWith(20);
   });
 
   it('should reject professional users from the student nutrition plan route', () => {
