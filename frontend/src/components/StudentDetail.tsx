@@ -134,6 +134,35 @@ function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercis
   return meta.join(' | ');
 }
 
+function getStructuredNutritionMeals(nutritionPlan: NutritionPlan) {
+  return Array.isArray(nutritionPlan.meals)
+    ? nutritionPlan.meals
+        .map((meal) => ({
+          ...meal,
+          foods: Array.isArray(meal.foods)
+            ? meal.foods.filter((food) => food.name.trim())
+            : [],
+        }))
+        .filter((meal) => meal.name.trim() && meal.foods.length > 0)
+    : [];
+}
+
+function getNutritionFoodMeta(
+  food: ReturnType<typeof getStructuredNutritionMeals>[number]['foods'][number],
+) {
+  const meta: string[] = [];
+
+  if (food.quantity) {
+    meta.push(food.quantity);
+  }
+
+  if (typeof food.calories === 'number' && Number.isFinite(food.calories)) {
+    meta.push(`${food.calories} kcal`);
+  }
+
+  return meta.join(' | ');
+}
+
 export function StudentDetail({
   student,
   onBack,
@@ -762,47 +791,85 @@ export function StudentDetail({
             ) : nutritionPlans.length === 0 ? (
               <p>Nenhum plano alimentar cadastrado para este aluno.</p>
             ) : (
-              nutritionPlans.map((nutritionPlan) => (
-                <article className="student-detail-note-item" key={nutritionPlan.id}>
-                  <strong>{nutritionPlan.name}</strong>
-                  <p>{nutritionPlan.objective}</p>
+              nutritionPlans.map((nutritionPlan) => {
+                const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
 
-                  <div className="student-detail-card-meta">
-                    <span>{nutritionPlan.calories} kcal</span>
-                    <span>{nutritionPlan.mealsCount} refeicoes</span>
-                    <span>{nutritionPlan.proteinGrams}g proteinas</span>
-                  </div>
+                return (
+                  <article className="student-detail-note-item" key={nutritionPlan.id}>
+                    <strong>{nutritionPlan.name}</strong>
+                    <p>{nutritionPlan.objective}</p>
 
-                  <div className="student-detail-card-meta">
-                    <span>{nutritionPlan.carbsGrams}g carboidratos</span>
-                    <span>{nutritionPlan.fatGrams}g gorduras</span>
-                    <span>{formatObservationDate(nutritionPlan.updatedAt)}</span>
-                  </div>
+                    <div className="student-detail-card-meta">
+                      <span>{nutritionPlan.calories} kcal</span>
+                      <span>{nutritionPlan.mealsCount} refeicoes</span>
+                      <span>{nutritionPlan.proteinGrams}g proteinas</span>
+                    </div>
 
-                  {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+                    <div className="student-detail-card-meta">
+                      <span>{nutritionPlan.carbsGrams}g carboidratos</span>
+                      <span>{nutritionPlan.fatGrams}g gorduras</span>
+                      <span>{formatObservationDate(nutritionPlan.updatedAt)}</span>
+                    </div>
 
-                  <span>Atualizado em {formatObservationDate(nutritionPlan.updatedAt)}</span>
+                    {nutritionPlanMeals.length > 0 && (
+                      <div className="nutrition-meal-summary-list">
+                        {nutritionPlanMeals.map((meal, mealIndex) => (
+                          <section
+                            className="nutrition-meal-summary-item"
+                            key={`${meal.name}-${mealIndex}`}
+                          >
+                            <div className="nutrition-meal-summary-heading">
+                              <strong>{meal.name}</strong>
+                              {meal.time && <span>{meal.time}</span>}
+                            </div>
 
-                  <div className="student-card-actions">
-                    <button
-                      className="student-detail-button"
-                      onClick={() => handleEditNutritionPlan(nutritionPlan)}
-                      type="button"
-                    >
-                      Editar
-                    </button>
+                            <div className="nutrition-food-summary-list">
+                              {meal.foods.map((food, foodIndex) => {
+                                const foodMeta = getNutritionFoodMeta(food);
 
-                    <button
-                      className="student-remove-button"
-                      disabled={removingNutritionPlanId === nutritionPlan.id}
-                      onClick={() => handleRemoveNutritionPlan(nutritionPlan.id)}
-                      type="button"
-                    >
-                      {removingNutritionPlanId === nutritionPlan.id ? 'Removendo...' : 'Remover'}
-                    </button>
-                  </div>
-                </article>
-              ))
+                                return (
+                                  <div
+                                    className="nutrition-food-summary-item"
+                                    key={`${food.name}-${foodIndex}`}
+                                  >
+                                    <strong>{food.name}</strong>
+                                    {foodMeta && <span>{foodMeta}</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        ))}
+                      </div>
+                    )}
+
+                    {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+
+                    <span>Atualizado em {formatObservationDate(nutritionPlan.updatedAt)}</span>
+
+                    <div className="student-card-actions">
+                      <button
+                        className="student-detail-button"
+                        onClick={() => handleEditNutritionPlan(nutritionPlan)}
+                        type="button"
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        className="student-remove-button"
+                        disabled={removingNutritionPlanId === nutritionPlan.id}
+                        onClick={() => handleRemoveNutritionPlan(nutritionPlan.id)}
+                        type="button"
+                      >
+                        {removingNutritionPlanId === nutritionPlan.id
+                          ? 'Removendo...'
+                          : 'Remover'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         </article>

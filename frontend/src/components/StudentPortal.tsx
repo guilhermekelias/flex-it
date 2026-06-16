@@ -98,6 +98,35 @@ function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercis
   return meta.join(' | ');
 }
 
+function getStructuredNutritionMeals(nutritionPlan: NutritionPlan) {
+  return Array.isArray(nutritionPlan.meals)
+    ? nutritionPlan.meals
+        .map((meal) => ({
+          ...meal,
+          foods: Array.isArray(meal.foods)
+            ? meal.foods.filter((food) => food.name.trim())
+            : [],
+        }))
+        .filter((meal) => meal.name.trim() && meal.foods.length > 0)
+    : [];
+}
+
+function getNutritionFoodMeta(
+  food: ReturnType<typeof getStructuredNutritionMeals>[number]['foods'][number],
+) {
+  const meta: string[] = [];
+
+  if (food.quantity) {
+    meta.push(food.quantity);
+  }
+
+  if (typeof food.calories === 'number' && Number.isFinite(food.calories)) {
+    meta.push(`${food.calories} kcal`);
+  }
+
+  return meta.join(' | ');
+}
+
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
   const firstName = getFirstName(user.name);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -456,19 +485,56 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
               ) : nutritionPlans.length === 0 ? (
                 <p>Nenhum plano alimentar enviado pelo profissional ainda.</p>
               ) : (
-                nutritionPlans.map((nutritionPlan) => (
-                  <article className="student-portal-note-item" key={nutritionPlan.id}>
-                    <p>
-                      <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
-                    </p>
-                    <span>
-                      {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount} refeicoes |{' '}
-                      {nutritionPlan.proteinGrams}g P / {nutritionPlan.carbsGrams}g C /{' '}
-                      {nutritionPlan.fatGrams}g G
-                    </span>
-                    {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
-                  </article>
-                ))
+                nutritionPlans.map((nutritionPlan) => {
+                  const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
+
+                  return (
+                    <article className="student-portal-note-item" key={nutritionPlan.id}>
+                      <p>
+                        <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
+                      </p>
+                      <span>
+                        {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount} refeicoes |{' '}
+                        {nutritionPlan.proteinGrams}g P / {nutritionPlan.carbsGrams}g C /{' '}
+                        {nutritionPlan.fatGrams}g G
+                      </span>
+
+                      {nutritionPlanMeals.length > 0 && (
+                        <div className="nutrition-meal-summary-list">
+                          {nutritionPlanMeals.map((meal, mealIndex) => (
+                            <section
+                              className="nutrition-meal-summary-item"
+                              key={`${meal.name}-${mealIndex}`}
+                            >
+                              <div className="nutrition-meal-summary-heading">
+                                <strong>{meal.name}</strong>
+                                {meal.time && <span>{meal.time}</span>}
+                              </div>
+
+                              <div className="nutrition-food-summary-list">
+                                {meal.foods.map((food, foodIndex) => {
+                                  const foodMeta = getNutritionFoodMeta(food);
+
+                                  return (
+                                    <div
+                                      className="nutrition-food-summary-item"
+                                      key={`${food.name}-${foodIndex}`}
+                                    >
+                                      <strong>{food.name}</strong>
+                                      {foodMeta && <span>{foodMeta}</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </section>
+                          ))}
+                        </div>
+                      )}
+
+                      {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+                    </article>
+                  );
+                })
               )}
             </div>
           </article>

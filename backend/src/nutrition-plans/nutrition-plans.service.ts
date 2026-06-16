@@ -2,7 +2,23 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Student } from '../students/entities/student.entity';
-import { NutritionPlan } from './entities/nutrition-plan.entity';
+import {
+  NutritionPlan,
+  NutritionPlanFood,
+  NutritionPlanMeal,
+} from './entities/nutrition-plan.entity';
+
+export type NutritionPlanFoodData = {
+  name?: unknown;
+  quantity?: unknown;
+  calories?: unknown;
+};
+
+export type NutritionPlanMealData = {
+  name?: unknown;
+  time?: unknown;
+  foods?: unknown;
+};
 
 export type CreateNutritionPlanData = {
   name?: unknown;
@@ -12,6 +28,7 @@ export type CreateNutritionPlanData = {
   carbsGrams?: unknown;
   fatGrams?: unknown;
   mealsCount?: unknown;
+  meals?: unknown;
   notes?: unknown;
 };
 
@@ -27,6 +44,7 @@ type NormalizedNutritionPlanData = Partial<
     | 'carbsGrams'
     | 'fatGrams'
     | 'mealsCount'
+    | 'meals'
     | 'notes'
   >
 >;
@@ -156,6 +174,7 @@ export class NutritionPlansService {
     requireAllFields: boolean,
   ): NormalizedNutritionPlanData {
     const payload = this.getPayloadObject(data);
+    const hasMeals = Object.prototype.hasOwnProperty.call(payload, 'meals');
     const nutritionPlanData: NormalizedNutritionPlanData = {
       ...this.normalizeName(payload.name, requireAllFields),
       ...this.normalizeObjective(payload.objective, requireAllFields),
@@ -163,7 +182,9 @@ export class NutritionPlansService {
       ...this.normalizeProteinGrams(payload.proteinGrams, requireAllFields),
       ...this.normalizeCarbsGrams(payload.carbsGrams, requireAllFields),
       ...this.normalizeFatGrams(payload.fatGrams, requireAllFields),
-      ...this.normalizeMealsCount(payload.mealsCount, requireAllFields),
+      ...(hasMeals
+        ? this.normalizeMeals(payload.meals)
+        : this.normalizeMealsCount(payload.mealsCount, requireAllFields)),
       ...this.normalizeNotes(payload.notes),
     };
 
@@ -256,6 +277,202 @@ export class NutritionPlansService {
     return this.normalizeInteger(mealsCount, 'mealsCount', required, 1);
   }
 
+  private normalizeMeals(
+    meals: unknown,
+  ): Pick<NormalizedNutritionPlanData, 'meals' | 'mealsCount'> {
+    if (meals === undefined || meals === null) {
+      return {
+        meals: [],
+        mealsCount: 0,
+      };
+    }
+
+    if (!Array.isArray(meals)) {
+      throw new BadRequestException('Lista de refeicoes invalida');
+    }
+
+    const normalizedMeals = meals
+      .map((meal, index) => this.normalizeMeal(meal, index))
+      .filter((meal): meal is NutritionPlanMeal => meal !== null);
+
+    return {
+      meals: normalizedMeals,
+      mealsCount: normalizedMeals.length,
+    };
+  }
+
+  private normalizeMeal(meal: unknown, index: number): NutritionPlanMeal | null {
+    if (!meal || typeof meal !== 'object' || Array.isArray(meal)) {
+      throw new BadRequestException(`Refeicao ${index + 1} invalida`);
+    }
+
+    const mealData = meal as NutritionPlanMealData;
+    const time = this.normalizeOptionalShortText(
+      mealData.time,
+      `Horario da refeicao ${index + 1} deve ser um texto curto`,
+      40,
+    );
+    const foods = this.normalizeFoods(mealData.foods, index);
+    const name = this.normalizeMealName(mealData.name, index, foods.length > 0);
+
+    if (foods.length === 0) {
+      return null;
+    }
+
+    return {
+      name,
+      time,
+      foods,
+    };
+  }
+
+  private normalizeMealName(name: unknown, index: number, required: boolean): string {
+    if (name === undefined || name === null || name === '') {
+      if (!required) {
+        return '';
+      }
+
+      throw new BadRequestException(`Nome da refeicao ${index + 1} e obrigatorio`);
+    }
+
+    if (typeof name !== 'string') {
+      throw new BadRequestException(`Nome da refeicao ${index + 1} e obrigatorio`);
+    }
+
+    const normalizedName = name.trim();
+
+    if (!normalizedName) {
+      if (!required) {
+        return '';
+      }
+
+      throw new BadRequestException(`Nome da refeicao ${index + 1} e obrigatorio`);
+    }
+
+    if (normalizedName.length > 100) {
+      throw new BadRequestException(`Nome da refeicao ${index + 1} deve ter ate 100 caracteres`);
+    }
+
+    return normalizedName;
+  }
+
+  private normalizeFoods(foods: unknown, mealIndex: number): NutritionPlanFood[] {
+    if (foods === undefined || foods === null) {
+      return [];
+    }
+
+    if (!Array.isArray(foods)) {
+      throw new BadRequestException(`Alimentos da refeicao ${mealIndex + 1} invalidos`);
+    }
+
+    return foods
+      .map((food, index) => this.normalizeFood(food, mealIndex, index))
+      .filter((food): food is NutritionPlanFood => food !== null);
+  }
+
+  private normalizeFood(
+    food: unknown,
+    mealIndex: number,
+    index: number,
+  ): NutritionPlanFood | null {
+    if (!food || typeof food !== 'object' || Array.isArray(food)) {
+      throw new BadRequestException(
+        `Alimento ${index + 1} da refeicao ${mealIndex + 1} invalido`,
+      );
+    }
+
+    const foodData = food as NutritionPlanFoodData;
+    const quantity = this.normalizeOptionalShortText(
+      foodData.quantity,
+      `Quantidade do alimento ${index + 1} da refeicao ${mealIndex + 1} deve ser um texto curto`,
+      40,
+    );
+    const calories = this.normalizeFoodCalories(foodData.calories, mealIndex, index);
+    const hasAnyValue = Boolean(
+      quantity !== null || calories !== null || this.hasTextValue(foodData.name),
+    );
+
+    if (!hasAnyValue) {
+      return null;
+    }
+
+    return {
+      name: this.normalizeFoodName(foodData.name, mealIndex, index),
+      quantity,
+      calories,
+    };
+  }
+
+  private normalizeFoodName(name: unknown, mealIndex: number, index: number): string {
+    const errorMessage = `Nome do alimento ${index + 1} da refeicao ${mealIndex + 1} e obrigatorio`;
+
+    if (typeof name !== 'string') {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const normalizedName = name.trim();
+
+    if (!normalizedName) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    if (normalizedName.length > 120) {
+      throw new BadRequestException(
+        `Nome do alimento ${index + 1} da refeicao ${mealIndex + 1} deve ter ate 120 caracteres`,
+      );
+    }
+
+    return normalizedName;
+  }
+
+  private normalizeFoodCalories(
+    calories: unknown,
+    mealIndex: number,
+    index: number,
+  ): number | null {
+    if (calories === undefined || calories === null || calories === '') {
+      return null;
+    }
+
+    if (typeof calories !== 'number' || !Number.isFinite(calories) || calories <= 0) {
+      throw new BadRequestException(
+        `Calorias do alimento ${index + 1} da refeicao ${mealIndex + 1} devem ser um numero positivo`,
+      );
+    }
+
+    return calories;
+  }
+
+  private normalizeOptionalShortText(
+    value: unknown,
+    errorMessage: string,
+    maxLength: number,
+  ): string | null {
+    if (value === undefined || value === null || value === '') {
+      return null;
+    }
+
+    if (typeof value !== 'string' && typeof value !== 'number') {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const normalizedValue = String(value).trim();
+
+    if (!normalizedValue) {
+      return null;
+    }
+
+    if (normalizedValue.length > maxLength) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    return normalizedValue;
+  }
+
+  private hasTextValue(value: unknown): boolean {
+    return typeof value === 'string' && Boolean(value.trim());
+  }
+
   private normalizeNotes(notes: unknown): Pick<NormalizedNutritionPlanData, 'notes'> {
     if (notes === undefined) {
       return {};
@@ -316,6 +533,7 @@ export class NutritionPlansService {
       carbsGrams: 'Carboidratos devem ser um numero inteiro maior ou igual a zero',
       fatGrams: 'Gorduras devem ser um numero inteiro maior ou igual a zero',
       mealsCount: 'Quantidade de refeicoes deve ser um numero inteiro maior que zero',
+      meals: 'Lista de refeicoes invalida',
       notes: 'Observacoes do plano alimentar invalidas',
     };
 
