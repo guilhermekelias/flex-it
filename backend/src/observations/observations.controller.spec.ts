@@ -2,14 +2,16 @@ import { ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserRole } from '../users/entities/user.entity';
-import { Observation } from './entities/observation.entity';
+import { Observation, ObservationSenderRole } from './entities/observation.entity';
 import { ObservationsController } from './observations.controller';
 import { ObservationsService } from './observations.service';
 
 type MockObservationsService = {
   createForStudent: jest.Mock;
+  createForStudentUser: jest.Mock;
   findByStudentForProfessional: jest.Mock;
   findForStudentUser: jest.Mock;
+  findThreadsForStudentUser: jest.Mock;
 };
 
 type ProfessionalRequest = Parameters<ObservationsController['findByStudentForProfessional']>[1];
@@ -38,8 +40,10 @@ describe('ObservationsController', () => {
   beforeEach(async () => {
     observationsService = {
       createForStudent: jest.fn(),
+      createForStudentUser: jest.fn(),
       findByStudentForProfessional: jest.fn(),
       findForStudentUser: jest.fn(),
+      findThreadsForStudentUser: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -72,6 +76,7 @@ describe('ObservationsController', () => {
       ...body,
       studentId: 3,
       professionalId: 10,
+      senderRole: ObservationSenderRole.PROFESSIONAL,
     } as Observation;
 
     observationsService.createForStudent.mockResolvedValue(observation);
@@ -80,6 +85,36 @@ describe('ObservationsController', () => {
       observation,
     );
     expect(observationsService.createForStudent).toHaveBeenCalledWith(3, 10, body);
+  });
+
+  it('should allow student users to create observations for their linked student record', async () => {
+    const body = {
+      studentId: 3,
+      message: 'Senti enjoo depois do treino.',
+    };
+    const observation = {
+      id: 2,
+      ...body,
+      professionalId: 10,
+      senderRole: ObservationSenderRole.STUDENT,
+    } as Observation;
+
+    observationsService.createForStudentUser.mockResolvedValue(observation);
+
+    await expect(controller.createForCurrentStudent(body, studentRequest)).resolves.toEqual(
+      observation,
+    );
+    expect(observationsService.createForStudentUser).toHaveBeenCalledWith(20, body);
+  });
+
+  it('should reject professional users from the student observation creation route', () => {
+    expect(() =>
+      controller.createForCurrentStudent(
+        { studentId: 3, message: 'Mensagem valida.' },
+        professionalRequest as StudentRequest,
+      ),
+    ).toThrow(ForbiddenException);
+    expect(observationsService.createForStudentUser).not.toHaveBeenCalled();
   });
 
   it('should allow professional users to list observations from a student', async () => {
@@ -123,10 +158,41 @@ describe('ObservationsController', () => {
     expect(observationsService.findForStudentUser).toHaveBeenCalledWith(20);
   });
 
+  it('should allow student users to list their observation threads', async () => {
+    const threads = [
+      {
+        studentId: 3,
+        professionalId: 10,
+        messages: [
+          {
+            id: 1,
+            message: 'Registrar dor ou desconforto apos o treino.',
+            studentId: 3,
+            professionalId: 10,
+          },
+        ] as Observation[],
+      },
+    ];
+
+    observationsService.findThreadsForStudentUser.mockResolvedValue(threads);
+
+    await expect(controller.findThreadsForCurrentStudent(studentRequest)).resolves.toEqual(
+      threads,
+    );
+    expect(observationsService.findThreadsForStudentUser).toHaveBeenCalledWith(20);
+  });
+
   it('should reject professional users from the student observation route', () => {
     expect(() => controller.findForCurrentStudent(professionalRequest as StudentRequest)).toThrow(
       ForbiddenException,
     );
     expect(observationsService.findForStudentUser).not.toHaveBeenCalled();
+  });
+
+  it('should reject professional users from the student observation threads route', () => {
+    expect(() =>
+      controller.findThreadsForCurrentStudent(professionalRequest as StudentRequest),
+    ).toThrow(ForbiddenException);
+    expect(observationsService.findThreadsForStudentUser).not.toHaveBeenCalled();
   });
 });

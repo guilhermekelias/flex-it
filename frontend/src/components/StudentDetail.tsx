@@ -1,5 +1,5 @@
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   ApiUnauthorizedError,
   createStudentNutritionPlan,
@@ -78,6 +78,14 @@ function formatAge(age: number) {
 
 function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
+}
+
+function getObservationSenderRole(observation: Observation) {
+  return observation.senderRole === 'student' ? 'student' : 'professional';
+}
+
+function getObservationSenderLabel(observation: Observation) {
+  return getObservationSenderRole(observation) === 'student' ? 'Aluno' : 'Profissional';
 }
 
 function formatMetricValue(value: number | null, unit: string) {
@@ -186,6 +194,7 @@ export function StudentDetail({
   const [observationFeedback, setObservationFeedback] = useState('');
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [isSavingObservation, setIsSavingObservation] = useState(false);
+  const observationListRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [metricFormValues, setMetricFormValues] = useState<MetricFormValues>(
     createEmptyMetricFormValues,
@@ -283,6 +292,18 @@ export function StudentDetail({
   }, [student.id]);
 
   useEffect(() => {
+    if (isLoadingObservations) {
+      return;
+    }
+
+    const observationList = observationListRef.current;
+
+    if (observationList) {
+      observationList.scrollTop = observationList.scrollHeight;
+    }
+  }, [observations.length, isLoadingObservations, student.id]);
+
+  useEffect(() => {
     let isCurrentStudent = true;
 
     const loadNutritionPlans = async () => {
@@ -368,7 +389,7 @@ export function StudentDetail({
     const message = observationMessage.trim();
 
     if (!message) {
-      setObservationFeedback('Digite uma observacao antes de salvar.');
+      setObservationFeedback('Digite uma mensagem antes de enviar.');
       return;
     }
 
@@ -377,9 +398,9 @@ export function StudentDetail({
 
     try {
       const newObservation = await createStudentObservation(student.id, { message });
-      setObservations((currentObservations) => [newObservation, ...currentObservations]);
+      setObservations((currentObservations) => [...currentObservations, newObservation]);
       setObservationMessage('');
-      setObservationFeedback('Observacao registrada.');
+      setObservationFeedback('Mensagem enviada.');
     } catch (error) {
       if (error instanceof ApiUnauthorizedError) {
         onSessionExpired();
@@ -965,18 +986,43 @@ export function StudentDetail({
         <article className="dashboard-panel student-detail-card student-detail-card-message">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">{'Comunica\u00e7\u00e3o'}</span>
-            <h2>{'Observa\u00e7\u00f5es'}</h2>
+            <h2>Conversa com o aluno</h2>
+          </div>
+
+          <div className="student-detail-chat-list" ref={observationListRef}>
+            {isLoadingObservations ? (
+              <p>Carregando mensagens...</p>
+            ) : observations.length === 0 ? (
+              <p>Nenhuma mensagem registrada para este aluno.</p>
+            ) : (
+              observations.map((observation) => {
+                const senderRole = getObservationSenderRole(observation);
+
+                return (
+                  <article
+                    className={`student-detail-chat-message student-detail-chat-message-${senderRole}`}
+                    key={observation.id}
+                  >
+                    <p>{observation.message}</p>
+                    <span className="student-detail-chat-meta">
+                      <strong>{getObservationSenderLabel(observation)}</strong>
+                      <span>{formatObservationDate(observation.createdAt)}</span>
+                    </span>
+                  </article>
+                );
+              })
+            )}
           </div>
 
           <form className="student-detail-observation-form" onSubmit={handleCreateObservation}>
             <label>
-              <span>Nova observacao</span>
+              <span>Nova mensagem</span>
               <textarea
                 className="student-detail-observation-textarea"
                 onInput={(event) =>
                   setObservationMessage((event.target as HTMLTextAreaElement).value)
                 }
-                placeholder="Registre uma orientacao simples para este aluno."
+                placeholder="Escreva uma orientacao ou resposta para este aluno."
                 rows={4}
                 value={observationMessage}
               />
@@ -987,28 +1033,13 @@ export function StudentDetail({
               disabled={isSavingObservation}
               type="submit"
             >
-              {isSavingObservation ? 'Salvando...' : 'Salvar observacao'}
+              {isSavingObservation ? 'Enviando...' : 'Enviar mensagem'}
             </button>
 
             {observationFeedback && (
               <p className="student-detail-observation-feedback">{observationFeedback}</p>
             )}
           </form>
-
-          <div className="student-detail-note-list">
-            {isLoadingObservations ? (
-              <p>Carregando observacoes...</p>
-            ) : observations.length === 0 ? (
-              <p>Nenhuma observacao registrada para este aluno.</p>
-            ) : (
-              observations.map((observation) => (
-                <article className="student-detail-note-item" key={observation.id}>
-                  <p>{observation.message}</p>
-                  <span>{formatObservationDate(observation.createdAt)}</span>
-                </article>
-              ))
-            )}
-          </div>
         </article>
       </section>
     </section>

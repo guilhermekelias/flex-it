@@ -14,7 +14,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/types/jwt-payload.type';
 import { UserRole } from '../users/entities/user.entity';
 import { ObservationsService } from './observations.service';
-import type { CreateObservationData } from './observations.service';
+import type {
+  CreateObservationData,
+  CreateStudentObservationData,
+} from './observations.service';
 
 type AuthenticatedRequest = Request & {
   user: JwtPayload;
@@ -56,6 +59,27 @@ export class ObservationsController {
     }
 
     return this.observationsService.findForStudentUser(request.user.sub);
+  }
+
+  @Get('observations/me/threads')
+  findThreadsForCurrentStudent(@Req() request: AuthenticatedRequest) {
+    if (request.user.role !== UserRole.STUDENT) {
+      throw new ForbiddenException('Apenas alunos podem visualizar suas observacoes');
+    }
+
+    return this.observationsService.findThreadsForStudentUser(request.user.sub);
+  }
+
+  @Post('observations/me')
+  createForCurrentStudent(
+    @Body() body: CreateStudentObservationData,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    if (request.user.role !== UserRole.STUDENT) {
+      throw new ForbiddenException('Apenas alunos podem enviar observacoes');
+    }
+
+    return this.observationsService.createForStudentUser(request.user.sub, body);
   }
 
   private getProfessionalId(request: AuthenticatedRequest): number {

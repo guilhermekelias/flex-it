@@ -2,10 +2,20 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Student } from '../students/entities/student.entity';
-import { Observation } from './entities/observation.entity';
+import { Observation, ObservationSenderRole } from './entities/observation.entity';
 
 export type CreateObservationData = {
-  message?: string;
+  message?: unknown;
+};
+
+export type CreateStudentObservationData = CreateObservationData & {
+  studentId?: unknown;
+};
+
+export type ObservationThread = {
+  studentId: number;
+  professionalId: number | null;
+  messages: Observation[];
 };
 
 @Injectable()
@@ -20,15 +30,40 @@ export class ObservationsService {
   async createForStudent(
     studentId: number,
     professionalId: number,
-    data: CreateObservationData,
+    data: CreateObservationData = {},
   ): Promise<Observation> {
-    const message = this.normalizeMessage(data.message);
+    const payload = this.getPayloadObject(data);
+    const message = this.normalizeMessage(payload.message);
     await this.findProfessionalStudentOrFail(studentId, professionalId);
 
     const observation = this.observationsRepository.create({
       message,
       studentId,
       professionalId,
+      senderRole: ObservationSenderRole.PROFESSIONAL,
+    });
+
+    return this.observationsRepository.save(observation);
+  }
+
+  async createForStudentUser(
+    userId: number,
+    data: CreateStudentObservationData = {},
+  ): Promise<Observation> {
+    const payload = this.getPayloadObject(data);
+    const message = this.normalizeMessage(payload.message);
+    const studentId = this.normalizeStudentId(payload.studentId);
+    const student = await this.findStudentLinkedToUserOrFail(studentId, userId);
+
+    if (!student.professionalId) {
+      throw new NotFoundException('Profissional vinculado ao aluno nao encontrado');
+    }
+
+    const observation = this.observationsRepository.create({
+      message,
+      studentId: student.id,
+      professionalId: student.professionalId,
+      senderRole: ObservationSenderRole.STUDENT,
     });
 
     return this.observationsRepository.save(observation);
@@ -46,7 +81,7 @@ export class ObservationsService {
         professionalId,
       },
       order: {
-        createdAt: 'DESC',
+        createdAt: 'ASC',
       },
     });
   }
@@ -69,19 +104,58 @@ export class ObservationsService {
         studentId: In(studentIds),
       },
       order: {
-        createdAt: 'DESC',
+        createdAt: 'ASC',
       },
     });
   }
 
-  private normalizeMessage(message?: string): string {
-    const normalizedMessage = message?.trim();
+  async findThreadsForStudentUser(userId: number): Promise<ObservationThread[]> {
+    const students = await this.findStudentsLinkedToUserOrFail(userId);
+    const studentIds = students.map((student) => student.id);
+    const observations = await this.observationsRepository.find({
+      where: {
+        studentId: In(studentIds),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    return students.map((student) => ({
+      studentId: student.id,
+      professionalId: student.professionalId,
+      messages: observations.filter((observation) => observation.studentId === student.id),
+    }));
+  }
+
+  private getPayloadObject(data: CreateObservationData | CreateStudentObservationData) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new BadRequestException('Payload de observacao invalido');
+    }
+
+    return data as Record<string, unknown>;
+  }
+
+  private normalizeMessage(message: unknown): string {
+    if (typeof message !== 'string') {
+      throw new BadRequestException('Observacao nao pode ficar vazia');
+    }
+
+    const normalizedMessage = message.trim();
 
     if (!normalizedMessage) {
       throw new BadRequestException('Observacao nao pode ficar vazia');
     }
 
     return normalizedMessage;
+  }
+
+  private normalizeStudentId(studentId: unknown): number {
+    if (typeof studentId !== 'number' || !Number.isInteger(studentId) || studentId <= 0) {
+      throw new BadRequestException('Aluno da conversa e obrigatorio');
+    }
+
+    return studentId;
   }
 
   private async findProfessionalStudentOrFail(
@@ -100,5 +174,37 @@ export class ObservationsService {
     }
 
     return student;
+  }
+
+  private async findStudentLinkedToUserOrFail(studentId: number, userId: number): Promise<Student> {
+    const student = await this.studentsRepository.findOne({
+      where: {
+        id: studentId,
+        userId,
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
+    }
+
+    return student;
+  }
+
+  private async findStudentsLinkedToUserOrFail(userId: number): Promise<Student[]> {
+    const students = await this.studentsRepository.find({
+      where: {
+        userId,
+      },
+      order: {
+        id: 'ASC',
+      },
+    });
+
+    if (students.length === 0) {
+      throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
+    }
+
+    return students;
   }
 }
