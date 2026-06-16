@@ -61,6 +61,18 @@ type StudentDetailProps = {
   onWorkoutsChanged?: () => void;
 };
 
+type StudentDetailTab = 'workouts' | 'nutrition' | 'metrics' | 'communication';
+
+const STUDENT_DETAIL_TABS: Array<{
+  id: StudentDetailTab;
+  label: string;
+}> = [
+  { id: 'workouts', label: 'Treinos' },
+  { id: 'nutrition', label: 'Dietas' },
+  { id: 'metrics', label: 'M\u00e9tricas' },
+  { id: 'communication', label: 'Comunica\u00e7\u00e3o' },
+];
+
 function getInitials(name: string) {
   const initials = name
     .trim()
@@ -172,6 +184,7 @@ export function StudentDetail({
   onWorkoutsChanged,
 }: StudentDetailProps) {
   const displayGoal = getDisplayGoal(student.goal);
+  const [activeTab, setActiveTab] = useState<StudentDetailTab>('workouts');
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [workoutFormValues, setWorkoutFormValues] = useState<WorkoutFormValues>(
     createEmptyWorkoutFormValues,
@@ -663,8 +676,42 @@ export function StudentDetail({
         </article>
       </section>
 
-      <section className="student-detail-grid" aria-label="Acompanhamento do aluno">
-        <article className="dashboard-panel student-detail-card student-detail-card-workout">
+      <section className="student-detail-tabs-area" aria-label="Acompanhamento do aluno">
+        <div
+          className="student-detail-tab-list"
+          role="tablist"
+          aria-label="Secoes do acompanhamento"
+        >
+          {STUDENT_DETAIL_TABS.map((tab) => {
+            const isActiveTab = activeTab === tab.id;
+
+            return (
+              <button
+                aria-controls={`student-detail-${tab.id}-panel`}
+                aria-selected={isActiveTab}
+                className={`student-detail-tab${
+                  isActiveTab ? ' student-detail-tab-active' : ''
+                }`}
+                id={`student-detail-${tab.id}-tab`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                role="tab"
+                type="button"
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          className="student-detail-tab-panel"
+          id={`student-detail-${activeTab}-panel`}
+          role="tabpanel"
+          aria-labelledby={`student-detail-${activeTab}-tab`}
+        >
+          {activeTab === 'workouts' && (
+            <article className="dashboard-panel student-detail-card student-detail-card-workout">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">Treinos</span>
             <h2>{editingWorkoutId !== null ? 'Editar treino' : 'Novo treino'}</h2>
@@ -747,9 +794,11 @@ export function StudentDetail({
               })
             )}
           </div>
-        </article>
+            </article>
+          )}
 
-        <article className="dashboard-panel student-detail-card student-detail-card-diet">
+          {activeTab === 'nutrition' && (
+            <article className="dashboard-panel student-detail-card student-detail-card-diet">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">Dietas</span>
             <h2>{editingNutritionPlanId !== null ? 'Editar plano' : 'Novo plano alimentar'}</h2>
@@ -872,9 +921,11 @@ export function StudentDetail({
               })
             )}
           </div>
-        </article>
+            </article>
+          )}
 
-        <article className="dashboard-panel student-detail-card student-detail-card-metrics">
+          {activeTab === 'metrics' && (
+            <article className="dashboard-panel student-detail-card student-detail-card-metrics">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">Metricas</span>
             <h2>{editingMetricId !== null ? 'Editar metrica' : 'Nova metrica'}</h2>
@@ -960,9 +1011,11 @@ export function StudentDetail({
               ))
             )}
           </div>
-        </article>
+            </article>
+          )}
 
-        <article className="dashboard-panel student-detail-card student-detail-card-message">
+          {activeTab === 'communication' && (
+            <article className="dashboard-panel student-detail-card student-detail-card-message">
           <div className="student-detail-card-heading">
             <span className="dashboard-section-kicker">{'Comunica\u00e7\u00e3o'}</span>
             <h2>{'Observa\u00e7\u00f5es'}</h2>
@@ -1009,7 +1062,9 @@ export function StudentDetail({
               ))
             )}
           </div>
-        </article>
+            </article>
+          )}
+        </div>
       </section>
     </section>
   );
