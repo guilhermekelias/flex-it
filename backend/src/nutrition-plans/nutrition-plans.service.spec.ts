@@ -118,6 +118,110 @@ describe('NutritionPlansService', () => {
     expect(nutritionPlansRepository.save).toHaveBeenCalledWith(nutritionPlan);
   });
 
+  it('should create a nutrition plan with structured meals and derive the count', async () => {
+    const student = { id: 3, professionalId: 10 } as Student;
+    const data = {
+      name: 'Plano inicial',
+      objective: 'Hipertrofia',
+      calories: 2500,
+      proteinGrams: 150,
+      carbsGrams: 300,
+      fatGrams: 70,
+      meals: [
+        {
+          name: '  Cafe da Manha  ',
+          time: '  07:00  ',
+          foods: [
+            {
+              name: '  Ovos  ',
+              quantity: '  2 unidades  ',
+              calories: 140,
+            },
+            {
+              name: 'Banana',
+              quantity: 1,
+            },
+          ],
+        },
+        {
+          name: 'Lanche da Manha',
+          foods: [],
+        },
+        {
+          name: 'Almoco',
+          time: '',
+          foods: [
+            {
+              name: 'Arroz',
+              quantity: '100g',
+              calories: null,
+            },
+          ],
+        },
+      ],
+    } as CreateNutritionPlanData;
+    const nutritionPlan = {
+      id: 1,
+      name: 'Plano inicial',
+      objective: 'Hipertrofia',
+      calories: 2500,
+      proteinGrams: 150,
+      carbsGrams: 300,
+      fatGrams: 70,
+      mealsCount: 2,
+      meals: [
+        {
+          name: 'Cafe da Manha',
+          time: '07:00',
+          foods: [
+            {
+              name: 'Ovos',
+              quantity: '2 unidades',
+              calories: 140,
+            },
+            {
+              name: 'Banana',
+              quantity: '1',
+              calories: null,
+            },
+          ],
+        },
+        {
+          name: 'Almoco',
+          time: null,
+          foods: [
+            {
+              name: 'Arroz',
+              quantity: '100g',
+              calories: null,
+            },
+          ],
+        },
+      ],
+      notes: null,
+      studentId: 3,
+      professionalId: 10,
+    } as NutritionPlan;
+
+    studentsRepository.findOne.mockResolvedValue(student);
+    nutritionPlansRepository.create.mockReturnValue(nutritionPlan);
+    nutritionPlansRepository.save.mockResolvedValue(nutritionPlan);
+
+    await expect(service.createForStudent(3, 10, data)).resolves.toEqual(nutritionPlan);
+    expect(nutritionPlansRepository.create).toHaveBeenCalledWith({
+      name: 'Plano inicial',
+      objective: 'Hipertrofia',
+      calories: 2500,
+      proteinGrams: 150,
+      carbsGrams: 300,
+      fatGrams: 70,
+      mealsCount: 2,
+      meals: nutritionPlan.meals,
+      studentId: 3,
+      professionalId: 10,
+    });
+  });
+
   it('should reject invalid nutrition plan payloads before checking ownership', async () => {
     await expect(
       service.createForStudent(3, 10, {
@@ -128,6 +232,31 @@ describe('NutritionPlansService', () => {
         carbsGrams: 300,
         fatGrams: 70,
         mealsCount: 5,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(studentsRepository.findOne).not.toHaveBeenCalled();
+    expect(nutritionPlansRepository.save).not.toHaveBeenCalled();
+  });
+
+  it('should reject invalid structured meals before checking ownership', async () => {
+    await expect(
+      service.createForStudent(3, 10, {
+        name: 'Plano inicial',
+        objective: 'Hipertrofia',
+        calories: 2500,
+        proteinGrams: 150,
+        carbsGrams: 300,
+        fatGrams: 70,
+        meals: [
+          {
+            name: 'Cafe da Manha',
+            foods: [
+              {
+                quantity: '100g',
+              },
+            ],
+          },
+        ],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(studentsRepository.findOne).not.toHaveBeenCalled();
@@ -257,6 +386,70 @@ describe('NutritionPlansService', () => {
       name: 'Plano ajustado',
       calories: 2600,
       notes: 'Aumentar calorias',
+    });
+  });
+
+  it('should update structured meals and refresh the derived count', async () => {
+    const existingNutritionPlan = {
+      id: 1,
+      name: 'Plano inicial',
+      objective: 'Hipertrofia',
+      calories: 2500,
+      proteinGrams: 150,
+      carbsGrams: 300,
+      fatGrams: 70,
+      mealsCount: 5,
+      meals: [],
+      notes: null,
+      studentId: 3,
+      professionalId: 10,
+    } as NutritionPlan;
+    const updatedNutritionPlan = {
+      ...existingNutritionPlan,
+      mealsCount: 1,
+      meals: [
+        {
+          name: 'Jantar',
+          time: '20:00',
+          foods: [
+            {
+              name: 'Frango',
+              quantity: '150g',
+              calories: 240,
+            },
+          ],
+        },
+      ],
+    } as NutritionPlan;
+
+    nutritionPlansRepository.findOne.mockResolvedValue(existingNutritionPlan);
+    nutritionPlansRepository.save.mockResolvedValue(updatedNutritionPlan);
+
+    await expect(
+      service.updateForStudent(3, 1, 10, {
+        meals: [
+          {
+            name: ' Jantar ',
+            time: '20:00',
+            foods: [
+              {
+                name: ' Frango ',
+                quantity: '150g',
+                calories: 240,
+              },
+            ],
+          },
+          {
+            name: 'Ceia',
+            foods: [],
+          },
+        ],
+      }),
+    ).resolves.toEqual(updatedNutritionPlan);
+    expect(nutritionPlansRepository.save).toHaveBeenCalledWith({
+      ...existingNutritionPlan,
+      mealsCount: 1,
+      meals: updatedNutritionPlan.meals,
     });
   });
 

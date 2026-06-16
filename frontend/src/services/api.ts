@@ -88,6 +88,18 @@ export type MetricPayload = {
 
 export type MetricUpdatePayload = Partial<MetricPayload>;
 
+export type NutritionPlanFood = {
+  name: string;
+  quantity?: string | null;
+  calories?: number | null;
+};
+
+export type NutritionPlanMeal = {
+  name: string;
+  time?: string | null;
+  foods: NutritionPlanFood[];
+};
+
 export type NutritionPlan = {
   id: number;
   name: string;
@@ -97,6 +109,7 @@ export type NutritionPlan = {
   carbsGrams: number;
   fatGrams: number;
   mealsCount: number;
+  meals?: NutritionPlanMeal[] | null;
   notes: string | null;
   studentId: number;
   professionalId: number;
@@ -112,6 +125,7 @@ export type NutritionPlanPayload = {
   carbsGrams: number;
   fatGrams: number;
   mealsCount: number;
+  meals?: NutritionPlanMeal[];
   notes?: string | null;
 };
 

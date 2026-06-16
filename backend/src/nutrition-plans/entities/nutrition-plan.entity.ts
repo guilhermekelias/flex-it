@@ -10,6 +10,18 @@ import {
 import { Student } from '../../students/entities/student.entity';
 import { User } from '../../users/entities/user.entity';
 
+export type NutritionPlanFood = {
+  name: string;
+  quantity: string | null;
+  calories: number | null;
+};
+
+export type NutritionPlanMeal = {
+  name: string;
+  time: string | null;
+  foods: NutritionPlanFood[];
+};
+
 @Entity('nutrition_plans')
 export class NutritionPlan {
   @PrimaryGeneratedColumn()
@@ -35,6 +47,13 @@ export class NutritionPlan {
 
   @Column({ name: 'meals_count', type: 'int' })
   mealsCount: number;
+
+  @Column({
+    name: 'meals',
+    type: 'jsonb',
+    default: () => "'[]'::jsonb",
+  })
+  meals: NutritionPlanMeal[];
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;

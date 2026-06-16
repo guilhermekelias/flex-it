@@ -698,6 +698,193 @@ button {
   gap: 10px;
 }
 
+.nutrition-plan-form {
+  gap: 14px;
+}
+
+.nutrition-meals-section {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.nutrition-meals-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nutrition-meals-heading span {
+  display: block;
+  color: #0f172a;
+  font-size: 0.96rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.nutrition-meals-heading small {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.nutrition-meal-add-button,
+.nutrition-meal-remove-button,
+.nutrition-food-add-button,
+.nutrition-food-remove-button {
+  border: 0;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.nutrition-meal-add-button,
+.nutrition-food-add-button {
+  width: fit-content;
+  color: #2563eb;
+}
+
+.nutrition-meal-remove-button,
+.nutrition-food-remove-button {
+  color: #dc2626;
+}
+
+.nutrition-meal-add-button {
+  flex: 0 0 auto;
+}
+
+.nutrition-meals-empty {
+  margin: 0;
+  border: 1px dashed #bfdbfe;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 12px;
+}
+
+.nutrition-meal-editor-list,
+.nutrition-food-editor-list,
+.nutrition-meal-summary-list,
+.nutrition-food-summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.nutrition-meal-editor,
+.nutrition-meal-summary-item {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 11px;
+}
+
+.nutrition-meal-editor-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(86px, 0.42fr) auto;
+  align-items: end;
+  gap: 9px;
+}
+
+.nutrition-meal-index {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.nutrition-food-editor {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(88px, 0.8fr) minmax(68px, 0.46fr) auto;
+  align-items: end;
+  gap: 8px;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 9px;
+}
+
+.nutrition-food-name-field {
+  min-width: 0;
+}
+
+.nutrition-food-remove-button {
+  min-height: 42px;
+}
+
+.nutrition-meal-summary-list {
+  margin-top: 4px;
+}
+
+.nutrition-meal-summary-item {
+  border-color: #bfdbfe;
+  background: #f8fafc;
+}
+
+.nutrition-meal-summary-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nutrition-meal-summary-heading strong,
+.nutrition-food-summary-item strong {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.nutrition-meal-summary-heading span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
+.nutrition-food-summary-list {
+  gap: 6px;
+}
+
+.nutrition-food-summary-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 9px;
+}
+
+.nutrition-food-summary-item span {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: right;
+}
+
 .dashboard-primary-button,
 .dashboard-secondary-button {
   min-height: 48px;
@@ -2105,6 +2292,12 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .nutrition-meal-editor-heading,
+  .nutrition-food-editor {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
   .workout-exercises-heading {
     display: grid;
   }
@@ -2118,14 +2311,31 @@ button {
     height: 28px;
   }
 
+  .nutrition-meal-index {
+    width: 28px;
+    height: 28px;
+  }
+
   .workout-exercise-grid,
   .workout-form-actions {
     grid-template-columns: 1fr;
   }
 
   .workout-exercise-add-button,
-  .workout-exercise-remove-button {
+  .workout-exercise-remove-button,
+  .nutrition-meal-add-button,
+  .nutrition-meal-remove-button,
+  .nutrition-food-add-button,
+  .nutrition-food-remove-button {
     justify-self: start;
+  }
+
+  .nutrition-food-summary-item {
+    grid-template-columns: 1fr;
+  }
+
+  .nutrition-food-summary-item span {
+    text-align: left;
   }
 }
 
