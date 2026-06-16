@@ -1406,6 +1406,70 @@ button {
   line-height: 1.4;
 }
 
+.student-detail-chat-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(46vh, 430px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.student-detail-chat-list > p {
+  margin: 0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 11px 12px;
+}
+
+.student-detail-chat-message {
+  display: grid;
+  gap: 7px;
+  width: fit-content;
+  max-width: min(86%, 520px);
+  border-radius: 8px;
+  color: #334155;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 11px 12px;
+}
+
+.student-detail-chat-message p {
+  margin: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.student-detail-chat-message-professional {
+  justify-self: end;
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.student-detail-chat-message-student {
+  justify-self: start;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.student-detail-chat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.student-detail-chat-meta strong {
+  color: inherit;
+}
+
 .student-detail-note-list > p,
 .student-detail-note-item {
   margin: 0;
@@ -2545,6 +2609,10 @@ button {
 
   .nutrition-food-summary-item span {
     text-align: left;
+  }
+
+  .student-detail-chat-list {
+    max-height: 320px;
   }
 }
 
