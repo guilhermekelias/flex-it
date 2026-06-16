@@ -1,8 +1,10 @@
+export type UserRole = 'professional' | 'student';
+
 export type User = {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
 };
 
 export type Student = {
@@ -11,9 +13,10 @@ export type Student = {
   email: string;
   age: number;
   goal: string;
+  userId?: number | null;
 };
 
-export type StudentPayload = Omit<Student, 'id'>;
+export type StudentPayload = Pick<Student, 'name' | 'email' | 'age' | 'goal'>;
 
 export type Observation = {
   id: number;
@@ -109,6 +112,11 @@ export type LoginPayload = {
   password: string;
 };
 
+export type RegisterPayload = LoginPayload & {
+  name: string;
+  role: UserRole;
+};
+
 export type LoginResponse = {
   message: string;
   user?: User;
@@ -200,6 +208,13 @@ export function login(credentials: LoginPayload): Promise<LoginResponse> {
   return request<LoginResponse>('/users/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
+  });
+}
+
+export function register(userData: RegisterPayload): Promise<User> {
+  return request<User>('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData),
   });
 }
 

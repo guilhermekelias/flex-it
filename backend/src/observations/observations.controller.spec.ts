@@ -120,7 +120,7 @@ describe('ObservationsController', () => {
     observationsService.findForStudentUser.mockResolvedValue(observations);
 
     await expect(controller.findForCurrentStudent(studentRequest)).resolves.toEqual(observations);
-    expect(observationsService.findForStudentUser).toHaveBeenCalledWith('ana@example.com');
+    expect(observationsService.findForStudentUser).toHaveBeenCalledWith(20);
   });
 
   it('should reject professional users from the student observation route', () => {

@@ -29,4 +29,7 @@ export class User {
 
   @OneToMany(() => Student, (student) => student.professional)
   students: Student[];
+
+  @OneToMany(() => Student, (student) => student.user)
+  linkedStudents: Student[];
 }

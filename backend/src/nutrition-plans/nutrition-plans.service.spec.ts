@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -299,8 +298,11 @@ describe('NutritionPlansService', () => {
     await expect(service.removeForStudent(3, 1, 10)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('should list nutrition plans linked to the authenticated student email', async () => {
-    const student = { id: 3, email: 'ana@example.com' } as Student;
+  it('should list nutrition plans linked to the authenticated student user', async () => {
+    const students = [
+      { id: 3, userId: 20 },
+      { id: 4, userId: 20 },
+    ] as Student[];
     const nutritionPlans = [
       {
         id: 1,
@@ -310,20 +312,18 @@ describe('NutritionPlansService', () => {
       },
     ] as NutritionPlan[];
 
-    studentsRepository.find.mockResolvedValue([student]);
+    studentsRepository.find.mockResolvedValue(students);
     nutritionPlansRepository.find.mockResolvedValue(nutritionPlans);
 
-    await expect(service.findForStudentUser('  ANA@example.com  ')).resolves.toEqual(
-      nutritionPlans,
-    );
+    await expect(service.findForStudentUser(20)).resolves.toEqual(nutritionPlans);
     expect(studentsRepository.find).toHaveBeenCalledWith({
       where: {
-        email: expect.any(Object),
+        userId: 20,
       },
     });
     expect(nutritionPlansRepository.find).toHaveBeenCalledWith({
       where: {
-        studentId: 3,
+        studentId: expect.any(Object),
       },
       order: {
         updatedAt: 'DESC',
@@ -335,27 +335,7 @@ describe('NutritionPlansService', () => {
   it('should throw NotFoundException when the authenticated student has no student record', async () => {
     studentsRepository.find.mockResolvedValue([]);
 
-    await expect(service.findForStudentUser('sem-vinculo@example.com')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(nutritionPlansRepository.find).not.toHaveBeenCalled();
-  });
-
-  it('should throw NotFoundException when the authenticated student email is empty', async () => {
-    await expect(service.findForStudentUser('   ')).rejects.toBeInstanceOf(NotFoundException);
-    expect(studentsRepository.find).not.toHaveBeenCalled();
-    expect(nutritionPlansRepository.find).not.toHaveBeenCalled();
-  });
-
-  it('should reject student lookup when the email matches more than one student record', async () => {
-    studentsRepository.find.mockResolvedValue([
-      { id: 1, email: 'ana@example.com' },
-      { id: 2, email: 'ana@example.com' },
-    ]);
-
-    await expect(service.findForStudentUser('ana@example.com')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(service.findForStudentUser(20)).rejects.toBeInstanceOf(NotFoundException);
     expect(nutritionPlansRepository.find).not.toHaveBeenCalled();
   });
 });

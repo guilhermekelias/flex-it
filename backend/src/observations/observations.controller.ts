@@ -55,7 +55,7 @@ export class ObservationsController {
       throw new ForbiddenException('Apenas alunos podem visualizar suas observacoes');
     }
 
-    return this.observationsService.findForStudentUser(request.user.email);
+    return this.observationsService.findForStudentUser(request.user.sub);
   }
 
   private getProfessionalId(request: AuthenticatedRequest): number {

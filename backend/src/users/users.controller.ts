@@ -1,18 +1,31 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtPayload } from '../auth/types/jwt-payload.type';
+import { UserRole } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { User } from './entities/user.entity';
+import type { CreateUserData } from './users.service';
+
+type AuthenticatedRequest = Request & {
+  user: JwtPayload;
+};
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  create(@Body() body: Partial<User>) {
+  create(@Body() body: CreateUserData) {
     return this.usersService.create(body);
   }
 
   @Get()
-  findAll() {
+  @UseGuards(JwtAuthGuard)
+  findAll(@Req() request: AuthenticatedRequest) {
+    if (request.user.role !== UserRole.PROFESSIONAL) {
+      throw new ForbiddenException('Apenas profissionais podem listar usuarios');
+    }
+
     return this.usersService.findAll();
   }
 

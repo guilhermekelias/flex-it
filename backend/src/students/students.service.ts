@@ -1,20 +1,25 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
+import { User, UserRole } from '../users/entities/user.entity';
 import { Student } from './entities/student.entity';
 
 type StudentData = Partial<Pick<Student, 'name' | 'email' | 'age' | 'goal'>>;
+type NormalizedStudentData = StudentData & Pick<Student, 'userId'>;
 
 @Injectable()
 export class StudentsService {
   constructor(
     @InjectRepository(Student)
     private readonly studentsRepository: Repository<Student>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
   ) {}
 
   async create(data: StudentData, professionalId: number): Promise<Student> {
+    const studentData = await this.normalizeStudentData(data, true);
     const student = this.studentsRepository.create({
-      ...this.pickStudentData(data),
+      ...studentData,
       professionalId,
     });
 
@@ -39,7 +44,7 @@ export class StudentsService {
       throw new NotFoundException('Aluno nao encontrado');
     }
 
-    Object.assign(student, this.pickStudentData(data));
+    Object.assign(student, await this.normalizeStudentData(data, false));
 
     return this.studentsRepository.save(student);
   }
@@ -55,25 +60,89 @@ export class StudentsService {
     }
   }
 
-  private pickStudentData(data: StudentData): StudentData {
-    const studentData: StudentData = {};
-
-    if (data.name !== undefined) {
-      studentData.name = data.name;
+  private async normalizeStudentData(
+    data: StudentData,
+    requireAllFields: boolean,
+  ): Promise<Partial<NormalizedStudentData>> {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new BadRequestException('Dados do aluno invalidos');
     }
 
-    if (data.email !== undefined) {
-      studentData.email = data.email;
+    const studentData: Partial<NormalizedStudentData> = {};
+
+    if (data.name !== undefined || requireAllFields) {
+      studentData.name = this.normalizeRequiredText(data.name, 'Nome do aluno e obrigatorio');
     }
 
-    if (data.age !== undefined) {
-      studentData.age = data.age;
+    if (data.email !== undefined || requireAllFields) {
+      const email = this.normalizeEmailField(data.email);
+      studentData.email = email;
+      studentData.userId = await this.resolveStudentUserId(email);
     }
 
-    if (data.goal !== undefined) {
-      studentData.goal = data.goal;
+    if (data.age !== undefined || requireAllFields) {
+      studentData.age = this.normalizeAge(data.age);
+    }
+
+    if (data.goal !== undefined || requireAllFields) {
+      studentData.goal = this.normalizeRequiredText(data.goal, 'Objetivo do aluno e obrigatorio');
     }
 
     return studentData;
+  }
+
+  private normalizeRequiredText(value: unknown, errorMessage: string): string {
+    if (typeof value !== 'string') {
+      throw new BadRequestException(errorMessage);
+    }
+
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue) {
+      throw new BadRequestException(errorMessage);
+    }
+
+    return normalizedValue;
+  }
+
+  private normalizeEmailField(value: unknown): string {
+    const normalizedEmail = this.normalizeRequiredText(
+      value,
+      'E-mail do aluno e obrigatorio',
+    ).toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      throw new BadRequestException('E-mail do aluno invalido');
+    }
+
+    return normalizedEmail;
+  }
+
+  private normalizeAge(value: unknown): number {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+      throw new BadRequestException('Idade do aluno deve ser um numero inteiro positivo');
+    }
+
+    return value;
+  }
+
+  private async resolveStudentUserId(email: string): Promise<number | null> {
+    const existingUser = await this.usersRepository.findOne({
+      where: {
+        email: Raw((alias) => `LOWER(TRIM(${alias})) = :email`, {
+          email,
+        }),
+      },
+    });
+
+    if (!existingUser) {
+      return null;
+    }
+
+    if (existingUser.role === UserRole.PROFESSIONAL) {
+      throw new BadRequestException('E-mail informado pertence a um usuario profissional');
+    }
+
+    return existingUser.id;
   }
 }

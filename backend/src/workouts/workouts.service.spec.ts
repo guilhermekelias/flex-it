@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -258,8 +257,11 @@ describe('WorkoutsService', () => {
     await expect(service.removeForStudent(3, 1, 10)).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('should list workouts linked to the authenticated student email', async () => {
-    const student = { id: 3, email: 'ana@example.com' } as Student;
+  it('should list workouts linked to the authenticated student user', async () => {
+    const students = [
+      { id: 3, userId: 20 },
+      { id: 4, userId: 20 },
+    ] as Student[];
     const workouts = [
       {
         id: 1,
@@ -269,18 +271,18 @@ describe('WorkoutsService', () => {
       },
     ] as Workout[];
 
-    studentsRepository.find.mockResolvedValue([student]);
+    studentsRepository.find.mockResolvedValue(students);
     workoutsRepository.find.mockResolvedValue(workouts);
 
-    await expect(service.findForStudentUser('  ANA@example.com  ')).resolves.toEqual(workouts);
+    await expect(service.findForStudentUser(20)).resolves.toEqual(workouts);
     expect(studentsRepository.find).toHaveBeenCalledWith({
       where: {
-        email: expect.any(Object),
+        userId: 20,
       },
     });
     expect(workoutsRepository.find).toHaveBeenCalledWith({
       where: {
-        studentId: 3,
+        studentId: expect.any(Object),
       },
       order: {
         createdAt: 'DESC',
@@ -291,21 +293,7 @@ describe('WorkoutsService', () => {
   it('should throw NotFoundException when the authenticated student has no student record', async () => {
     studentsRepository.find.mockResolvedValue([]);
 
-    await expect(service.findForStudentUser('sem-vinculo@example.com')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    expect(workoutsRepository.find).not.toHaveBeenCalled();
-  });
-
-  it('should reject student lookup when the email matches more than one student record', async () => {
-    studentsRepository.find.mockResolvedValue([
-      { id: 1, email: 'ana@example.com' },
-      { id: 2, email: 'ana@example.com' },
-    ]);
-
-    await expect(service.findForStudentUser('ana@example.com')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(service.findForStudentUser(20)).rejects.toBeInstanceOf(NotFoundException);
     expect(workoutsRepository.find).not.toHaveBeenCalled();
   });
 });

@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { JSX } from 'preact';
 import { LoginPage } from './components/LoginPage';
+import { RegisterPage } from './components/RegisterPage';
 import { DashboardPage } from './components/DashboardPage';
 import { StudentPortal } from './components/StudentPortal';
 import {
+  ApiRequestError,
   ApiUnauthorizedError,
   createStudent as createStudentRequest,
   deleteStudent as deleteStudentRequest,
   getStudents,
   login,
+  register,
   updateStudent as updateStudentRequest,
+  type RegisterPayload,
   type Student,
+  type StudentPayload,
   type User,
 } from './services/api';
 
@@ -21,10 +26,13 @@ function getUserExperience(user: User) {
   return user.role === 'student' ? 'student' : 'professional';
 }
 
+type AuthView = 'login' | 'register';
+
 export function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [authView, setAuthView] = useState<AuthView>('login');
   const [loggedUser, setLoggedUser] = useState<User | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
 
@@ -60,6 +68,13 @@ export function App() {
     setLoggedUser(null);
     setStudents([]);
     setMessage(nextMessage);
+    setAuthView('login');
+  };
+
+  const saveSession = (user: User, accessToken: string) => {
+    setLoggedUser(user);
+    localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, accessToken);
   };
 
   const handleSessionExpired = () => {
@@ -84,7 +99,7 @@ export function App() {
     }
   };
 
-  const createStudent = async (studentData: Omit<Student, 'id'>) => {
+  const createStudent = async (studentData: StudentPayload) => {
     try {
       await createStudentRequest(studentData);
       await fetchStudents();
@@ -93,7 +108,7 @@ export function App() {
     }
   };
 
-  const updateStudent = async (id: number, studentData: Omit<Student, 'id'>) => {
+  const updateStudent = async (id: number, studentData: StudentPayload) => {
     try {
       const updatedStudent = await updateStudentRequest(id, studentData);
 
@@ -129,14 +144,40 @@ export function App() {
       setMessage(data.message);
 
       if (data.user && data.accessToken) {
-        setLoggedUser(data.user);
-        localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(data.user));
-        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, data.accessToken);
+        saveSession(data.user, data.accessToken);
         setEmail('');
         setPassword('');
       }
-    } catch {
-      setMessage('Erro ao conectar com o servidor');
+    } catch (error) {
+      setMessage(
+        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor',
+      );
+    }
+  };
+
+  const handleRegister = async (payload: RegisterPayload) => {
+    setMessage('');
+
+    try {
+      await register(payload);
+      const data = await login({
+        email: payload.email,
+        password: payload.password,
+      });
+
+      if (data.user && data.accessToken) {
+        saveSession(data.user, data.accessToken);
+        setEmail('');
+        setPassword('');
+        return;
+      }
+
+      setAuthView('login');
+      setMessage(data.message || 'Conta criada. Faca login para continuar.');
+    } catch (error) {
+      setMessage(
+        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor',
+      );
     }
   };
 
@@ -168,6 +209,19 @@ export function App() {
     );
   }
 
+  if (authView === 'register') {
+    return (
+      <RegisterPage
+        message={message}
+        onBackToLogin={() => {
+          setMessage('');
+          setAuthView('login');
+        }}
+        onSubmit={handleRegister}
+      />
+    );
+  }
+
   return (
     <LoginPage
       email={email}
@@ -176,6 +230,10 @@ export function App() {
       onEmailChange={setEmail}
       onPasswordChange={setPassword}
       onSubmit={handleLogin}
+      onCreateAccountClick={() => {
+        setMessage('');
+        setAuthView('register');
+      }}
     />
   );
 }

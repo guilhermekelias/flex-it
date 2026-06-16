@@ -7,6 +7,7 @@ type LoginPageProps = {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: (e: JSX.TargetedEvent<HTMLFormElement, Event>) => void;
+  onCreateAccountClick: () => void;
 };
 
 export function LoginPage({
@@ -16,6 +17,7 @@ export function LoginPage({
   onEmailChange,
   onPasswordChange,
   onSubmit,
+  onCreateAccountClick,
 }: LoginPageProps) {
   return (
     <main className="login-shell">
@@ -27,13 +29,13 @@ export function LoginPage({
           <p className="login-eyebrow">FlexIt PWA</p>
           <h1 id="login-title">Acesse o FlexIt</h1>
           <p className="login-subtitle">
-            Gerencie alunos, treinos e evolucao em um painel profissional.
+            Entre como profissional ou aluno para acompanhar treinos, dietas e evolucao.
           </p>
         </div>
 
         <div className="login-card">
           <div className="login-card-header">
-            <h2>Login profissional</h2>
+            <h2>Login</h2>
             <p>Entre com suas credenciais atuais.</p>
           </div>
 
@@ -72,9 +74,13 @@ export function LoginPage({
               {message}
             </p>
           )}
+
+          <button className="auth-switch-button" onClick={onCreateAccountClick} type="button">
+            Criar conta
+          </button>
         </div>
 
-        <p className="login-footnote">Acesso reservado para profissionais FlexIt.</p>
+        <p className="login-footnote">Acesso para profissionais e alunos FlexIt.</p>
       </section>
     </main>
   );

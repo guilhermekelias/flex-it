@@ -1,11 +1,6 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Raw, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Student } from '../students/entities/student.entity';
 import { Workout } from './entities/workout.entity';
 
@@ -120,18 +115,10 @@ export class WorkoutsService {
     }
   }
 
-  async findForStudentUser(email: string): Promise<Workout[]> {
-    const normalizedEmail = this.normalizeEmail(email);
-
-    if (!normalizedEmail) {
-      throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
-    }
-
+  async findForStudentUser(userId: number): Promise<Workout[]> {
     const students = await this.studentsRepository.find({
       where: {
-        email: Raw((alias) => `LOWER(TRIM(${alias})) = :email`, {
-          email: normalizedEmail,
-        }),
+        userId,
       },
     });
 
@@ -139,13 +126,11 @@ export class WorkoutsService {
       throw new NotFoundException('Aluno vinculado ao usuario nao encontrado');
     }
 
-    if (students.length > 1) {
-      throw new ForbiddenException('Aluno vinculado ao usuario de forma ambigua');
-    }
+    const studentIds = students.map((student) => student.id);
 
     return this.workoutsRepository.find({
       where: {
-        studentId: students[0].id,
+        studentId: In(studentIds),
       },
       order: {
         createdAt: 'DESC',
@@ -278,10 +263,6 @@ export class WorkoutsService {
     }
 
     return value;
-  }
-
-  private normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
   }
 
   private async findProfessionalStudentOrFail(

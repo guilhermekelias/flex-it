@@ -114,9 +114,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           if (error instanceof ApiRequestError && error.status === 404) {
             setWorkoutError('Nenhum cadastro de aluno foi encontrado para este usuario.');
           } else if (error instanceof ApiRequestError && error.status === 403) {
-            setWorkoutError(
-              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
-            );
+            setWorkoutError('Seu usuario nao tem permissao para visualizar estes treinos.');
           } else {
             setWorkoutError('Nao foi possivel carregar seus treinos.');
           }
@@ -161,7 +159,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
             setObservationError('Nenhum cadastro de aluno foi encontrado para este usuario.');
           } else if (error instanceof ApiRequestError && error.status === 403) {
             setObservationError(
-              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+              'Seu usuario nao tem permissao para visualizar estas observacoes.',
             );
           } else {
             setObservationError('Nao foi possivel carregar suas observacoes.');
@@ -207,7 +205,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
             setNutritionPlanError('Nenhum cadastro de aluno foi encontrado para este usuario.');
           } else if (error instanceof ApiRequestError && error.status === 403) {
             setNutritionPlanError(
-              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
+              'Seu usuario nao tem permissao para visualizar estes planos alimentares.',
             );
           } else {
             setNutritionPlanError('Nao foi possivel carregar seus planos alimentares.');
@@ -252,9 +250,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           if (error instanceof ApiRequestError && error.status === 404) {
             setMetricError('Nenhum cadastro de aluno foi encontrado para este usuario.');
           } else if (error instanceof ApiRequestError && error.status === 403) {
-            setMetricError(
-              'Seu email esta vinculado a mais de um aluno. Solicite ajuste ao profissional.',
-            );
+            setMetricError('Seu usuario nao tem permissao para visualizar estas metricas.');
           } else {
             setMetricError('Nao foi possivel carregar suas metricas.');
           }

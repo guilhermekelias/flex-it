@@ -176,7 +176,7 @@ describe('WorkoutsController', () => {
     workoutsService.findForStudentUser.mockResolvedValue(workouts);
 
     await expect(controller.findForCurrentStudent(studentRequest)).resolves.toEqual(workouts);
-    expect(workoutsService.findForStudentUser).toHaveBeenCalledWith('ana@example.com');
+    expect(workoutsService.findForStudentUser).toHaveBeenCalledWith(20);
   });
 
   it('should reject professional users from the student workout route', () => {
