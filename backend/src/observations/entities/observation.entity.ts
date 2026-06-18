@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type ValueTransformer,
 } from 'typeorm';
 import { Student } from '../../students/entities/student.entity';
 import { User } from '../../users/entities/user.entity';
@@ -13,6 +14,28 @@ export enum ObservationSenderRole {
   PROFESSIONAL = 'professional',
   STUDENT = 'student',
 }
+
+const postgresTimestampAsUtcTransformer: ValueTransformer = {
+  to: (value: unknown) => value,
+  from: (value: unknown) => {
+    if (!(value instanceof Date)) {
+      return value;
+    }
+
+    // PostgreSQL TIMESTAMP has no timezone; treat the stored wall-clock value as UTC.
+    return new Date(
+      Date.UTC(
+        value.getFullYear(),
+        value.getMonth(),
+        value.getDate(),
+        value.getHours(),
+        value.getMinutes(),
+        value.getSeconds(),
+        value.getMilliseconds(),
+      ),
+    );
+  },
+};
 
 @Entity('observations')
 export class Observation {
@@ -44,6 +67,9 @@ export class Observation {
   })
   senderRole: ObservationSenderRole;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({
+    name: 'created_at',
+    transformer: postgresTimestampAsUtcTransformer,
+  })
   createdAt: Date;
 }
