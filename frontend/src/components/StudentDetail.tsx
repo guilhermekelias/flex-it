@@ -92,13 +92,15 @@ function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
 }
 
-function getObservationSenderRole(observation: Observation) {
-  return 'senderRole' in observation && observation.senderRole === 'student'
-    ? 'student'
-    : 'professional';
+type ObservationWithSender = Observation & {
+  senderRole?: 'professional' | 'student' | null;
+};
+
+function getObservationSenderRole(observation: ObservationWithSender) {
+  return observation.senderRole === 'student' ? 'student' : 'professional';
 }
 
-function getObservationSenderLabel(observation: Observation) {
+function getObservationSenderLabel(observation: ObservationWithSender) {
   return getObservationSenderRole(observation) === 'student' ? 'Aluno' : 'Profissional';
 }
 

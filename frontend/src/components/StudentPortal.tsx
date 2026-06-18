@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   ApiRequestError,
   ApiUnauthorizedError,
+  createMyObservation,
   getMyNutritionPlans,
   getMyMetrics,
   getMyWorkouts,
-  getMyObservations,
+  getMyObservationThreads,
   type Metric,
   type NutritionPlan,
   type Observation,
+  type ObservationThread,
   type User,
   type Workout,
 } from '../services/api';
@@ -27,11 +30,27 @@ const STUDENT_PORTAL_TABS: Array<{ id: StudentPortalTab; label: string }> = [
   { id: 'workouts', label: 'Treinos' },
   { id: 'nutrition', label: 'Dietas' },
   { id: 'metrics', label: 'Metricas' },
-  { id: 'observations', label: 'Observacoes' },
+  { id: 'observations', label: 'Comunicacao' },
 ];
 
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
+}
+
+function getObservationSenderRole(observation: Observation) {
+  return observation.senderRole === 'student' ? 'student' : 'professional';
+}
+
+function getObservationSenderLabel(observation: Observation) {
+  return getObservationSenderRole(observation) === 'student' ? 'Aluno' : 'Profissional';
+}
+
+function getObservationThreadLabel(thread: ObservationThread) {
+  const professionalLabel = thread.professionalId
+    ? `Profissional #${thread.professionalId}`
+    : 'Sem profissional vinculado';
+
+  return `Vinculo #${thread.studentId} | ${professionalLabel}`;
 }
 
 function formatMetricValue(value: number | null, unit: string) {
@@ -143,7 +162,11 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [isLoadingWorkouts, setIsLoadingWorkouts] = useState(false);
   const [workoutError, setWorkoutError] = useState('');
-  const [observations, setObservations] = useState<Observation[]>([]);
+  const [observationThreads, setObservationThreads] = useState<ObservationThread[]>([]);
+  const [observationMessages, setObservationMessages] = useState<Record<number, string>>({});
+  const [observationFeedback, setObservationFeedback] = useState<Record<number, string>>({});
+  const [savingObservationStudentId, setSavingObservationStudentId] = useState<number | null>(null);
+  const observationThreadRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [isLoadingObservations, setIsLoadingObservations] = useState(false);
   const [observationError, setObservationError] = useState('');
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -203,12 +226,13 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     const loadObservations = async () => {
       setIsLoadingObservations(true);
       setObservationError('');
+      setObservationFeedback({});
 
       try {
-        const data = await getMyObservations();
+        const data = await getMyObservationThreads();
 
         if (isCurrentUser) {
-          setObservations(data);
+          setObservationThreads(data);
         }
       } catch (error) {
         if (error instanceof ApiUnauthorizedError) {
@@ -223,10 +247,10 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
             setObservationError('Nenhum cadastro de aluno foi encontrado para este usuario.');
           } else if (error instanceof ApiRequestError && error.status === 403) {
             setObservationError(
-              'Seu usuario nao tem permissao para visualizar estas observacoes.',
+              'Seu usuario nao tem permissao para visualizar estas mensagens.',
             );
           } else {
-            setObservationError('Nao foi possivel carregar suas observacoes.');
+            setObservationError('Nao foi possivel carregar suas mensagens.');
           }
         }
       } finally {
@@ -333,6 +357,104 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     };
   }, [user.email]);
 
+  const observations = observationThreads.flatMap((thread) => thread.messages);
+
+  const handleObservationMessageChange = (studentId: number, value: string) => {
+    setObservationMessages((currentMessages) => ({
+      ...currentMessages,
+      [studentId]: value,
+    }));
+    setObservationFeedback((currentFeedback) => ({
+      ...currentFeedback,
+      [studentId]: '',
+    }));
+  };
+
+  const handleCreateObservation = async (
+    event: JSX.TargetedEvent<HTMLFormElement, Event>,
+    studentId: number,
+  ) => {
+    event.preventDefault();
+
+    const message = (observationMessages[studentId] ?? '').trim();
+    const thread = observationThreads.find(
+      (currentThread) => currentThread.studentId === studentId,
+    );
+
+    if (!message) {
+      setObservationFeedback((currentFeedback) => ({
+        ...currentFeedback,
+        [studentId]: 'Digite uma mensagem antes de enviar.',
+      }));
+      return;
+    }
+
+    if (!thread?.professionalId) {
+      setObservationFeedback((currentFeedback) => ({
+        ...currentFeedback,
+        [studentId]: 'Vinculo sem profissional para receber a mensagem.',
+      }));
+      return;
+    }
+
+    setSavingObservationStudentId(studentId);
+    setObservationFeedback((currentFeedback) => ({
+      ...currentFeedback,
+      [studentId]: '',
+    }));
+
+    try {
+      const newObservation = await createMyObservation({ studentId, message });
+
+      setObservationThreads((currentThreads) =>
+        currentThreads.map((currentThread) =>
+          currentThread.studentId === studentId
+            ? {
+                ...currentThread,
+                professionalId: newObservation.professionalId,
+                messages: [...currentThread.messages, newObservation],
+              }
+            : currentThread,
+        ),
+      );
+      setObservationMessages((currentMessages) => ({
+        ...currentMessages,
+        [studentId]: '',
+      }));
+      setObservationFeedback((currentFeedback) => ({
+        ...currentFeedback,
+        [studentId]: 'Mensagem enviada.',
+      }));
+    } catch (error) {
+      if (error instanceof ApiUnauthorizedError) {
+        onSessionExpired();
+        return;
+      }
+
+      console.error(error);
+      setObservationFeedback((currentFeedback) => ({
+        ...currentFeedback,
+        [studentId]: 'Nao foi possivel enviar a mensagem.',
+      }));
+    } finally {
+      setSavingObservationStudentId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (isLoadingObservations) {
+      return;
+    }
+
+    observationThreads.forEach((thread) => {
+      const observationList = observationThreadRefs.current[thread.studentId];
+
+      if (observationList) {
+        observationList.scrollTop = observationList.scrollHeight;
+      }
+    });
+  }, [observationThreads, isLoadingObservations]);
+
   const currentWorkout = workouts[0] ?? null;
   const workoutProgress = workouts.length > 0 ? 100 : 0;
   const workoutTitle = isLoadingWorkouts
@@ -357,6 +479,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     : nutritionPlanError || 'Seu profissional ainda nao cadastrou planos alimentares.';
   const activeTabLabel =
     STUDENT_PORTAL_TABS.find((tab) => tab.id === activeTab)?.label ?? 'Resumo';
+  const hasMultipleObservationThreads = observationThreads.length > 1;
   const summaryCards = [
     {
       label: 'Treinos',
@@ -403,7 +526,7 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
       modifier: 'student-portal-summary-stat-metric',
     },
     {
-      label: 'Observacoes',
+      label: 'Mensagens',
       value: isLoadingObservations
         ? '...'
         : observationError
@@ -414,8 +537,8 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
         : observationError
           ? 'Nao carregou'
           : observations.length === 1
-            ? 'mensagem recebida'
-            : 'mensagens recebidas',
+            ? 'mensagem registrada'
+            : 'mensagens registradas',
       modifier: 'student-portal-summary-stat-observation',
     },
   ];
@@ -728,25 +851,97 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           )}
 
           {activeTab === 'observations' && (
-            <section className="student-portal-grid" aria-label="Observacoes do aluno">
+            <section className="student-portal-grid" aria-label="Comunicacao do aluno">
               <article className="student-portal-card student-portal-card-message">
                 <div className="student-portal-card-heading">
                   <span className="student-portal-kicker">Comunicacao</span>
-                  <h2>Observacoes do profissional</h2>
+                  <h2>Conversa com o profissional</h2>
                 </div>
 
-                <div className="student-portal-note-list">
+                <div className="student-portal-chat-thread-list">
                   {isLoadingObservations ? (
-                    <p>Carregando observacoes...</p>
+                    <p>Carregando mensagens...</p>
                   ) : observationError ? (
                     <p>{observationError}</p>
-                  ) : observations.length === 0 ? (
-                    <p>Nenhuma observacao enviada pelo profissional ainda.</p>
+                  ) : observationThreads.length === 0 ? (
+                    <p>Nenhum vinculo de aluno encontrado para comunicacao.</p>
                   ) : (
-                    observations.map((observation) => (
-                      <article className="student-portal-note-item" key={observation.id}>
-                        <p>{observation.message}</p>
-                        <span>{formatObservationDate(observation.createdAt)}</span>
+                    observationThreads.map((thread) => (
+                      <article className="student-portal-chat-thread" key={thread.studentId}>
+                        {hasMultipleObservationThreads && (
+                          <div className="student-portal-chat-thread-heading">
+                            <strong>{getObservationThreadLabel(thread)}</strong>
+                          </div>
+                        )}
+
+                        <div
+                          className="student-portal-chat-list"
+                          ref={(element) => {
+                            observationThreadRefs.current[thread.studentId] = element;
+                          }}
+                        >
+                          {thread.messages.length === 0 ? (
+                            <p>Nenhuma mensagem registrada neste vinculo.</p>
+                          ) : (
+                            thread.messages.map((observation) => {
+                              const senderRole = getObservationSenderRole(observation);
+
+                              return (
+                                <article
+                                  className={`student-portal-chat-message student-portal-chat-message-${senderRole}`}
+                                  key={observation.id}
+                                >
+                                  <p>{observation.message}</p>
+                                  <span className="student-portal-chat-meta">
+                                    <strong>{getObservationSenderLabel(observation)}</strong>
+                                    <span>{formatObservationDate(observation.createdAt)}</span>
+                                  </span>
+                                </article>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        <form
+                          className="student-portal-observation-form"
+                          onSubmit={(event) => handleCreateObservation(event, thread.studentId)}
+                        >
+                          <label>
+                            <span>Nova mensagem</span>
+                            <textarea
+                              className="student-detail-observation-textarea"
+                              disabled={!thread.professionalId}
+                              onInput={(event) =>
+                                handleObservationMessageChange(
+                                  thread.studentId,
+                                  (event.target as HTMLTextAreaElement).value,
+                                )
+                              }
+                              placeholder="Escreva um relato ou resposta para o profissional."
+                              rows={3}
+                              value={observationMessages[thread.studentId] ?? ''}
+                            />
+                          </label>
+
+                          <button
+                            className="dashboard-primary-button"
+                            disabled={
+                              savingObservationStudentId === thread.studentId ||
+                              !thread.professionalId
+                            }
+                            type="submit"
+                          >
+                            {savingObservationStudentId === thread.studentId
+                              ? 'Enviando...'
+                              : 'Enviar mensagem'}
+                          </button>
+
+                          {observationFeedback[thread.studentId] && (
+                            <p className="student-detail-observation-feedback">
+                              {observationFeedback[thread.studentId]}
+                            </p>
+                          )}
+                        </form>
                       </article>
                     ))
                   )}

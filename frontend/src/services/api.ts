@@ -18,16 +18,29 @@ export type Student = {
 
 export type StudentPayload = Pick<Student, 'name' | 'email' | 'age' | 'goal'>;
 
+export type ObservationSenderRole = 'professional' | 'student';
+
 export type Observation = {
   id: number;
   message: string;
   studentId: number;
   professionalId: number;
+  senderRole?: ObservationSenderRole | null;
   createdAt: string;
 };
 
 export type ObservationPayload = {
   message: string;
+};
+
+export type StudentObservationPayload = ObservationPayload & {
+  studentId: number;
+};
+
+export type ObservationThread = {
+  studentId: number;
+  professionalId: number | null;
+  messages: Observation[];
 };
 
 export type WorkoutExercise = {
@@ -294,6 +307,23 @@ export function getMyObservations(): Promise<Observation[]> {
   return request<Observation[]>('/observations/me', {
     method: 'GET',
     authenticated: true,
+  });
+}
+
+export function getMyObservationThreads(): Promise<ObservationThread[]> {
+  return request<ObservationThread[]>('/observations/me/threads', {
+    method: 'GET',
+    authenticated: true,
+  });
+}
+
+export function createMyObservation(
+  observationData: StudentObservationPayload,
+): Promise<Observation> {
+  return request<Observation>('/observations/me', {
+    method: 'POST',
+    authenticated: true,
+    body: JSON.stringify(observationData),
   });
 }
 
