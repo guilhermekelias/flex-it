@@ -65,6 +65,7 @@ services:
       - "443:443"
     environment:
       PRODUCTION_SERVER_NAME: ${PRODUCTION_SERVER_NAME:?PRODUCTION_SERVER_NAME nao informado}
+      PRODUCTION_SERVER_ALIASES: ${PRODUCTION_SERVER_ALIASES:-}
       CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-25m}
 
       BACKEND_PRODUCTION_HOST: backend-production
@@ -82,6 +83,16 @@ services:
     networks:
       - production-network
     restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    pull_policy: always
+    volumes:
+      - /opt/flex-it/certbot/www:/var/www/certbot
+      - /opt/flex-it/certbot/conf:/etc/letsencrypt
+    profiles:
+      - maintenance
+    restart: "no"
 
 networks:
   production-network:
