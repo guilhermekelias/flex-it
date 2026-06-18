@@ -18,10 +18,10 @@ services:
 
   backend-production:
     container_name: flexit-backend-production
-    image: ${BACKEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-backend:latest}
+    image: ghcr.io/guilhermekelias/flex-it-backend:latest
     pull_policy: always
     expose:
-      - "${BACKEND_PORT:-3000}"
+      - "3000"
     env_file:
       - /opt/flex-it/env/backend.production.env
     depends_on:
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
 
   backend-migrations:
-    image: ${BACKEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-backend:latest}
+    image: ghcr.io/guilhermekelias/flex-it-backend:latest
     pull_policy: always
     command: ["npm", "run", "migration:run"]
     env_file:
@@ -48,10 +48,10 @@ services:
 
   frontend-production:
     container_name: flexit-frontend-production
-    image: ${FRONTEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-frontend:latest}
+    image: ghcr.io/guilhermekelias/flex-it-frontend:latest
     pull_policy: always
     expose:
-      - "${FRONTEND_PORT:-80}"
+      - "80"
     networks:
       - production-network
     restart: unless-stopped
@@ -63,15 +63,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    env_file:
+      - /opt/flex-it/env/compose.production.env
     environment:
-      PRODUCTION_SERVER_NAME: ${PRODUCTION_SERVER_NAME:?PRODUCTION_SERVER_NAME nao informado}
-      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-25m}
-
       BACKEND_PRODUCTION_HOST: backend-production
-      BACKEND_PORT: ${BACKEND_PORT:-3000}
-
       FRONTEND_PRODUCTION_HOST: frontend-production
-      FRONTEND_PORT: ${FRONTEND_PORT:-80}
     volumes:
       - /opt/flex-it/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - /opt/flex-it/certbot/www:/var/www/certbot:ro
