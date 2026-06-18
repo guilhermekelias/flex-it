@@ -1,4 +1,21 @@
 services:
+  postgres-production:
+    container_name: flexit-postgres-production
+    image: postgres:16-alpine
+    pull_policy: always
+    env_file:
+      - /opt/flex-it/env/postgres.production.env
+    volumes:
+      - postgres-production-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - production-network
+    restart: unless-stopped
+
   backend-production:
     container_name: flexit-backend-production
     image: ${BACKEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-backend:latest}
@@ -7,9 +24,27 @@ services:
       - "${BACKEND_PORT:-3000}"
     env_file:
       - /opt/flex-it/env/backend.production.env
+    depends_on:
+      postgres-production:
+        condition: service_healthy
     networks:
       - production-network
     restart: unless-stopped
+
+  backend-migrations:
+    image: ${BACKEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-backend:latest}
+    pull_policy: always
+    command: ["npm", "run", "migration:run"]
+    env_file:
+      - /opt/flex-it/env/backend.production.env
+    depends_on:
+      postgres-production:
+        condition: service_healthy
+    networks:
+      - production-network
+    profiles:
+      - maintenance
+    restart: "no"
 
   frontend-production:
     container_name: flexit-frontend-production
@@ -50,3 +85,6 @@ services:
 
 networks:
   production-network:
+
+volumes:
+  postgres-production-data:

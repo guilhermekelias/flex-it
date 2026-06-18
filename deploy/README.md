@@ -53,7 +53,27 @@ No Security Group da EC2, libere entrada:
 - TCP 443 de `0.0.0.0/0`
 - SSH 22 apenas para seu IP
 
-## 4. Subir em HTTP primeiro
+## 4. Criar/atualizar tabelas do banco
+
+Na primeira subida, crie o schema do PostgreSQL antes de usar a API:
+
+```bash
+cd /opt/flex-it
+docker compose --env-file /opt/flex-it/env/compose.production.env up -d postgres-production
+docker compose --env-file /opt/flex-it/env/compose.production.env --profile maintenance run --rm backend-migrations
+```
+
+Esse comando usa as variaveis de `/opt/flex-it/env/backend.production.env` e registra a migration aplicada na tabela `migrations`.
+
+Para conferir as tabelas:
+
+```bash
+docker exec -it flexit-postgres-production psql -U flexit -d flexit -c "\dt"
+```
+
+Em deploys futuros, rode o mesmo `backend-migrations` depois de atualizar a imagem do backend e antes de validar a API.
+
+## 5. Subir em HTTP primeiro
 
 Na EC2:
 
@@ -71,7 +91,7 @@ curl -I http://seu-dominio.com.br
 curl -i http://seu-dominio.com.br/api/
 ```
 
-## 5. Gerar certificado HTTPS
+## 6. Gerar certificado HTTPS
 
 So rode esta etapa se `PRODUCTION_SERVER_NAME` for um dominio apontando para a EC2.
 
@@ -102,7 +122,7 @@ curl -I https://seu-dominio.com.br
 curl -i https://seu-dominio.com.br/api/
 ```
 
-## 6. Renovacao do certificado
+## 7. Renovacao do certificado
 
 Rode periodicamente:
 
