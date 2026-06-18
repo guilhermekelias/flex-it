@@ -43,17 +43,21 @@ jobs:
         working-directory: frontend
         run: npm run test:coverage
 
+      - name: Verify coverage reports
+        run: |
+          set -euo pipefail
+          echo "Coverage files found:"
+          find . \( -path "*/coverage/*" -o -name "lcov.info" \) -print
+
+          test -s backend/coverage/lcov.info
+          test -s frontend/coverage/lcov.info
+
+          echo "Backend LCOV sample:"
+          head -n 5 backend/coverage/lcov.info
+          echo "Frontend LCOV sample:"
+          head -n 5 frontend/coverage/lcov.info
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=guilhermekelias
-            -Dsonar.organization=guilhermekelias
-            -Dsonar.sources=backend/src,frontend/src
-            -Dsonar.tests=backend/src,frontend/src
-            -Dsonar.test.inclusions=**/*.spec.ts,**/*.test.ts,**/*.spec.tsx,**/*.test.tsx
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/coverage/**
-            -Dsonar.coverage.exclusions=backend/src/main.ts,backend/src/**/*.module.ts,backend/src/database/data-source.ts,backend/src/database/migrations/**,frontend/src/main.tsx,frontend/src/vite-env.d.ts
-            -Dsonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info
