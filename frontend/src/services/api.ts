@@ -160,7 +160,7 @@ export type LoginResponse = {
   accessToken?: string;
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const AUTH_TOKEN_STORAGE_KEY = 'flexit_token';
 
 type RequestOptions = RequestInit & {
