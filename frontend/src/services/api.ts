@@ -163,6 +163,34 @@ export type LoginResponse = {
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const AUTH_TOKEN_STORAGE_KEY = 'flexit_token';
 
+function buildObservationThreadsFromMessages(
+  observations: Observation[],
+): ObservationThread[] {
+  const threads = new Map<number, ObservationThread>();
+
+  observations.forEach((observation) => {
+    const currentThread = threads.get(observation.studentId);
+
+    if (currentThread) {
+      currentThread.messages.push(observation);
+
+      if (!currentThread.professionalId) {
+        currentThread.professionalId = observation.professionalId;
+      }
+
+      return;
+    }
+
+    threads.set(observation.studentId, {
+      studentId: observation.studentId,
+      professionalId: observation.professionalId,
+      messages: [observation],
+    });
+  });
+
+  return Array.from(threads.values());
+}
+
 type RequestOptions = RequestInit & {
   authenticated?: boolean;
 };
@@ -310,11 +338,20 @@ export function getMyObservations(): Promise<Observation[]> {
   });
 }
 
-export function getMyObservationThreads(): Promise<ObservationThread[]> {
-  return request<ObservationThread[]>('/observations/me/threads', {
-    method: 'GET',
-    authenticated: true,
-  });
+export async function getMyObservationThreads(): Promise<ObservationThread[]> {
+  try {
+    return await request<ObservationThread[]>('/observations/me/threads', {
+      method: 'GET',
+      authenticated: true,
+    });
+  } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 404) {
+      // Keep the student portal readable with deployments that only expose /observations/me.
+      return buildObservationThreadsFromMessages(await getMyObservations());
+    }
+
+    throw error;
+  }
 }
 
 export function createMyObservation(
