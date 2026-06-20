@@ -54,8 +54,15 @@ jobs:
 
           echo "Backend LCOV sample:"
           head -n 5 backend/coverage/lcov.info
+          awk '/^SF:/ { print; if (++count == 5) exit }' backend/coverage/lcov.info
           echo "Frontend LCOV sample:"
           head -n 5 frontend/coverage/lcov.info
+          awk '/^SF:/ { print; if (++count == 5) exit }' frontend/coverage/lcov.info
+
+          grep -q "^SF:backend/src/" backend/coverage/lcov.info
+          grep -q "^SF:frontend/src/" frontend/coverage/lcov.info
+          ! grep -E "^SF:src[\\/]" backend/coverage/lcov.info
+          ! grep -E "^SF:src[\\/]" frontend/coverage/lcov.info
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
