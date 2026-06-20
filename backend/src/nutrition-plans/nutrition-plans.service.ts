@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import {
+  normalizeOptionalShortText,
+  normalizeRequiredText,
+} from '../common/validation/text-normalizers';
+import { findProfessionalStudentOrFail } from '../common/students/find-professional-student';
 import { Student } from '../students/entities/student.entity';
 import {
   NutritionPlan,
@@ -64,7 +69,7 @@ export class NutritionPlansService {
     data: CreateNutritionPlanData,
   ): Promise<NutritionPlan> {
     const nutritionPlanData = this.normalizeNutritionPlanData(data, true);
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     const nutritionPlan = this.nutritionPlansRepository.create({
       ...nutritionPlanData,
@@ -91,7 +96,7 @@ export class NutritionPlansService {
     studentId: number,
     professionalId: number,
   ): Promise<NutritionPlan[]> {
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     return this.nutritionPlansRepository.find({
       where: {
@@ -218,7 +223,7 @@ export class NutritionPlansService {
     }
 
     return {
-      name: this.normalizeRequiredText(name, 'Nome do plano alimentar e obrigatorio'),
+      name: normalizeRequiredText(name, 'Nome do plano alimentar e obrigatorio'),
     };
   }
 
@@ -235,7 +240,7 @@ export class NutritionPlansService {
     }
 
     return {
-      objective: this.normalizeRequiredText(
+      objective: normalizeRequiredText(
         objective,
         'Objetivo do plano alimentar e obrigatorio',
       ),
@@ -307,7 +312,7 @@ export class NutritionPlansService {
     }
 
     const mealData = meal as NutritionPlanMealData;
-    const time = this.normalizeOptionalShortText(
+    const time = normalizeOptionalShortText(
       mealData.time,
       `Horario da refeicao ${index + 1} deve ser um texto curto`,
       40,
@@ -382,7 +387,7 @@ export class NutritionPlansService {
     }
 
     const foodData = food as NutritionPlanFoodData;
-    const quantity = this.normalizeOptionalShortText(
+    const quantity = normalizeOptionalShortText(
       foodData.quantity,
       `Quantidade do alimento ${index + 1} da refeicao ${mealIndex + 1} deve ser um texto curto`,
       40,
@@ -443,32 +448,6 @@ export class NutritionPlansService {
     return calories;
   }
 
-  private normalizeOptionalShortText(
-    value: unknown,
-    errorMessage: string,
-    maxLength: number,
-  ): string | null {
-    if (value === undefined || value === null || value === '') {
-      return null;
-    }
-
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = String(value).trim();
-
-    if (!normalizedValue) {
-      return null;
-    }
-
-    if (normalizedValue.length > maxLength) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
-  }
-
   private hasTextValue(value: unknown): boolean {
     return typeof value === 'string' && Boolean(value.trim());
   }
@@ -487,20 +466,6 @@ export class NutritionPlansService {
     }
 
     return { notes: notes.trim() || null };
-  }
-
-  private normalizeRequiredText(value: unknown, errorMessage: string): string {
-    if (typeof value !== 'string') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = value.trim();
-
-    if (!normalizedValue) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
   }
 
   private normalizeInteger<K extends keyof NormalizedNutritionPlanData>(
@@ -540,21 +505,4 @@ export class NutritionPlansService {
     return messages[field];
   }
 
-  private async findProfessionalStudentOrFail(
-    studentId: number,
-    professionalId: number,
-  ): Promise<Student> {
-    const student = await this.studentsRepository.findOne({
-      where: {
-        id: studentId,
-        professionalId,
-      },
-    });
-
-    if (!student) {
-      throw new NotFoundException('Aluno nao encontrado');
-    }
-
-    return student;
-  }
 }

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { findProfessionalStudentOrFail } from '../common/students/find-professional-student';
 import { Student } from '../students/entities/student.entity';
 import { Observation, ObservationSenderRole } from './entities/observation.entity';
 
@@ -34,7 +35,7 @@ export class ObservationsService {
   ): Promise<Observation> {
     const payload = this.getPayloadObject(data);
     const message = this.normalizeMessage(payload.message);
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     const observation = this.observationsRepository.create({
       message,
@@ -73,7 +74,7 @@ export class ObservationsService {
     studentId: number,
     professionalId: number,
   ): Promise<Observation[]> {
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     return this.observationsRepository.find({
       where: {
@@ -156,24 +157,6 @@ export class ObservationsService {
     }
 
     return studentId;
-  }
-
-  private async findProfessionalStudentOrFail(
-    studentId: number,
-    professionalId: number,
-  ): Promise<Student> {
-    const student = await this.studentsRepository.findOne({
-      where: {
-        id: studentId,
-        professionalId,
-      },
-    });
-
-    if (!student) {
-      throw new NotFoundException('Aluno nao encontrado');
-    }
-
-    return student;
   }
 
   private async findStudentLinkedToUserOrFail(studentId: number, userId: number): Promise<Student> {

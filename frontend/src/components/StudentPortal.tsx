@@ -10,12 +10,18 @@ import {
   getMyObservationThreads,
   type Metric,
   type NutritionPlan,
-  type Observation,
   type ObservationThread,
   type User,
   type Workout,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
+import { calculateBmi, formatMetricValue } from '../utils/metricDisplay';
+import {
+  getObservationSenderLabel,
+  getObservationSenderRole,
+} from '../utils/observationDisplay';
+import { NutritionMealSummaryList } from './NutritionMealSummaryList';
+import { WorkoutExerciseSummaryList } from './WorkoutExerciseSummaryList';
 
 type StudentPortalProps = {
   user: User;
@@ -37,50 +43,12 @@ function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
 }
 
-function getObservationSenderRole(observation: Observation) {
-  return observation.senderRole === 'student' ? 'student' : 'professional';
-}
-
-function getObservationSenderLabel(observation: Observation) {
-  return getObservationSenderRole(observation) === 'student' ? 'Aluno' : 'Profissional';
-}
-
 function getObservationThreadLabel(thread: ObservationThread) {
   const professionalLabel = thread.professionalId
     ? `Profissional #${thread.professionalId}`
     : 'Sem profissional vinculado';
 
   return `Vinculo #${thread.studentId} | ${professionalLabel}`;
-}
-
-function formatMetricValue(value: number | null, unit: string) {
-  if (value === null || !Number.isFinite(value)) {
-    return '--';
-  }
-
-  return `${value.toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-  })} ${unit}`;
-}
-
-function calculateBmi(weightKg: number | null, heightCm: number | null) {
-  if (
-    weightKg === null ||
-    heightCm === null ||
-    !Number.isFinite(weightKg) ||
-    !Number.isFinite(heightCm) ||
-    weightKg <= 0 ||
-    heightCm <= 0
-  ) {
-    return '--';
-  }
-
-  const heightMeters = heightCm / 100;
-  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  });
 }
 
 function getMetricSummary(metric: Metric | null) {
@@ -101,59 +69,6 @@ function getMetricSummary(metric: Metric | null) {
       detail: metric ? 'calculado por peso e altura' : 'peso e altura pendentes',
     },
   ];
-}
-
-function getStructuredWorkoutExercises(workout: Workout) {
-  return Array.isArray(workout.exercises)
-    ? workout.exercises.filter((exercise) => exercise.name.trim())
-    : [];
-}
-
-function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercises>[number]) {
-  const meta: string[] = [];
-
-  if (exercise.sets) {
-    meta.push(`${exercise.sets} series`);
-  }
-
-  if (exercise.reps) {
-    meta.push(`${exercise.reps} reps`);
-  }
-
-  if (exercise.rest) {
-    meta.push(`${exercise.rest} descanso`);
-  }
-
-  return meta.join(' | ');
-}
-
-function getStructuredNutritionMeals(nutritionPlan: NutritionPlan) {
-  return Array.isArray(nutritionPlan.meals)
-    ? nutritionPlan.meals
-        .map((meal) => ({
-          ...meal,
-          foods: Array.isArray(meal.foods)
-            ? meal.foods.filter((food) => food.name.trim())
-            : [],
-        }))
-        .filter((meal) => meal.name.trim() && meal.foods.length > 0)
-    : [];
-}
-
-function getNutritionFoodMeta(
-  food: ReturnType<typeof getStructuredNutritionMeals>[number]['foods'][number],
-) {
-  const meta: string[] = [];
-
-  if (food.quantity) {
-    meta.push(food.quantity);
-  }
-
-  if (typeof food.calories === 'number' && Number.isFinite(food.calories)) {
-    meta.push(`${food.calories} kcal`);
-  }
-
-  return meta.join(' | ');
 }
 
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
@@ -658,41 +573,20 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
                   ) : workouts.length === 0 ? (
                     <p>Nenhum treino enviado pelo profissional ainda.</p>
                   ) : (
-                    workouts.map((workout) => {
-                      const workoutExercises = getStructuredWorkoutExercises(workout);
+                    workouts.map((workout) => (
+                      <article className="student-portal-note-item" key={workout.id}>
+                        <p>
+                          <strong>{workout.name}</strong>
+                          {workout.description ? ` - ${workout.description}` : ''}
+                        </p>
+                        <span>
+                          {workout.type} | {workout.durationMinutes} min |{' '}
+                          {workout.exercisesCount} exercicios
+                        </span>
 
-                      return (
-                        <article className="student-portal-note-item" key={workout.id}>
-                          <p>
-                            <strong>{workout.name}</strong>
-                            {workout.description ? ` - ${workout.description}` : ''}
-                          </p>
-                          <span>
-                            {workout.type} | {workout.durationMinutes} min |{' '}
-                            {workout.exercisesCount} exercicios
-                          </span>
-
-                          {workoutExercises.length > 0 && (
-                            <div className="workout-exercise-summary-list">
-                              {workoutExercises.map((exercise, index) => {
-                                const exerciseMeta = getExerciseMeta(exercise);
-
-                                return (
-                                  <div
-                                    className="workout-exercise-summary-item"
-                                    key={`${exercise.name}-${index}`}
-                                  >
-                                    <strong>{exercise.name}</strong>
-                                    {exerciseMeta && <span>{exerciseMeta}</span>}
-                                    {exercise.notes && <p>{exercise.notes}</p>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </article>
-                      );
-                    })
+                        <WorkoutExerciseSummaryList workout={workout} />
+                      </article>
+                    ))
                   )}
                 </div>
               </article>
@@ -744,56 +638,22 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
                   ) : nutritionPlans.length === 0 ? (
                     <p>Nenhum plano alimentar enviado pelo profissional ainda.</p>
                   ) : (
-                    nutritionPlans.map((nutritionPlan) => {
-                      const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
+                    nutritionPlans.map((nutritionPlan) => (
+                      <article className="student-portal-note-item" key={nutritionPlan.id}>
+                        <p>
+                          <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
+                        </p>
+                        <span>
+                          {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount} refeicoes |{' '}
+                          {nutritionPlan.proteinGrams}g P / {nutritionPlan.carbsGrams}g C /{' '}
+                          {nutritionPlan.fatGrams}g G
+                        </span>
 
-                      return (
-                        <article className="student-portal-note-item" key={nutritionPlan.id}>
-                          <p>
-                            <strong>{nutritionPlan.name}</strong> - {nutritionPlan.objective}
-                          </p>
-                          <span>
-                            {nutritionPlan.calories} kcal | {nutritionPlan.mealsCount}{' '}
-                            refeicoes | {nutritionPlan.proteinGrams}g P /{' '}
-                            {nutritionPlan.carbsGrams}g C / {nutritionPlan.fatGrams}g G
-                          </span>
+                        <NutritionMealSummaryList nutritionPlan={nutritionPlan} />
 
-                          {nutritionPlanMeals.length > 0 && (
-                            <div className="nutrition-meal-summary-list">
-                              {nutritionPlanMeals.map((meal, mealIndex) => (
-                                <section
-                                  className="nutrition-meal-summary-item"
-                                  key={`${meal.name}-${mealIndex}`}
-                                >
-                                  <div className="nutrition-meal-summary-heading">
-                                    <strong>{meal.name}</strong>
-                                    {meal.time && <span>{meal.time}</span>}
-                                  </div>
-
-                                  <div className="nutrition-food-summary-list">
-                                    {meal.foods.map((food, foodIndex) => {
-                                      const foodMeta = getNutritionFoodMeta(food);
-
-                                      return (
-                                        <div
-                                          className="nutrition-food-summary-item"
-                                          key={`${food.name}-${foodIndex}`}
-                                        >
-                                          <strong>{food.name}</strong>
-                                          {foodMeta && <span>{foodMeta}</span>}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </section>
-                              ))}
-                            </div>
-                          )}
-
-                          {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
-                        </article>
-                      );
-                    })
+                        {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
+                      </article>
+                    ))
                   )}
                 </div>
               </article>

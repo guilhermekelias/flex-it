@@ -2,6 +2,11 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Raw, Repository } from 'typeorm';
+import {
+  normalizeEmail,
+  normalizeEmailField,
+  normalizeRequiredText,
+} from '../common/validation/text-normalizers';
 import { Student } from '../students/entities/student.entity';
 import { User, UserRole } from './entities/user.entity';
 
@@ -48,7 +53,7 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
 
     if (!normalizedEmail) {
       return null;
@@ -93,35 +98,11 @@ export class UsersService {
     }
 
     return {
-      name: this.normalizeRequiredText(data.name, 'Nome e obrigatorio'),
-      email: this.normalizeEmailField(data.email),
-      password: this.normalizeRequiredText(data.password, 'Senha e obrigatoria'),
+      name: normalizeRequiredText(data.name, 'Nome e obrigatorio'),
+      email: normalizeEmailField(data.email, 'E-mail e obrigatorio', 'E-mail invalido'),
+      password: normalizeRequiredText(data.password, 'Senha e obrigatoria'),
       role: this.normalizeRole(data.role),
     };
-  }
-
-  private normalizeRequiredText(value: unknown, errorMessage: string): string {
-    if (typeof value !== 'string') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = value.trim();
-
-    if (!normalizedValue) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
-  }
-
-  private normalizeEmailField(value: unknown): string {
-    const normalizedEmail = this.normalizeRequiredText(value, 'E-mail e obrigatorio').toLowerCase();
-
-    if (!this.isValidEmail(normalizedEmail)) {
-      throw new BadRequestException('E-mail invalido');
-    }
-
-    return normalizedEmail;
   }
 
   private normalizeRole(role: unknown): UserRole {
@@ -130,14 +111,6 @@ export class UsersService {
     }
 
     throw new BadRequestException('Perfil de usuario invalido. Use professional ou student');
-  }
-
-  private normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
-  }
-
-  private isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   private async saveUserOrThrowConflict(user: User): Promise<User> {

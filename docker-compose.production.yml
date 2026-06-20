@@ -51,7 +51,7 @@ services:
     image: ghcr.io/guilhermekelias/flex-it-frontend:latest
     pull_policy: always
     expose:
-      - "80"
+      - "8080"
     networks:
       - production-network
     restart: unless-stopped

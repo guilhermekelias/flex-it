@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import {
+  normalizeOptionalShortText,
+  normalizeRequiredText,
+} from '../common/validation/text-normalizers';
+import { findProfessionalStudentOrFail } from '../common/students/find-professional-student';
 import { Student } from '../students/entities/student.entity';
 import { Workout, WorkoutExercise } from './entities/workout.entity';
 
@@ -47,7 +52,7 @@ export class WorkoutsService {
     data: CreateWorkoutData,
   ): Promise<Workout> {
     const workoutData = this.normalizeWorkoutData(data, true);
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     const workout = this.workoutsRepository.create({
       ...workoutData,
@@ -73,7 +78,7 @@ export class WorkoutsService {
     studentId: number,
     professionalId: number,
   ): Promise<Workout[]> {
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     return this.workoutsRepository.find({
       where: {
@@ -177,7 +182,7 @@ export class WorkoutsService {
       return {};
     }
 
-    const normalizedName = this.normalizeRequiredText(name, 'Nome do treino e obrigatorio');
+    const normalizedName = normalizeRequiredText(name, 'Nome do treino e obrigatorio');
     return { name: normalizedName };
   }
 
@@ -211,7 +216,7 @@ export class WorkoutsService {
       return {};
     }
 
-    const normalizedType = this.normalizeRequiredText(type, 'Tipo do treino e obrigatorio');
+    const normalizedType = normalizeRequiredText(type, 'Tipo do treino e obrigatorio');
     return { type: normalizedType };
   }
 
@@ -285,17 +290,17 @@ export class WorkoutsService {
         exercise.sets,
         `Series do exercicio ${index + 1} devem ser um numero inteiro positivo`,
       ),
-      reps: this.normalizeOptionalShortText(
+      reps: normalizeOptionalShortText(
         exercise.reps,
         `Repeticoes do exercicio ${index + 1} devem ser texto ou numero simples`,
         40,
       ),
-      rest: this.normalizeOptionalShortText(
+      rest: normalizeOptionalShortText(
         exercise.rest,
         `Descanso do exercicio ${index + 1} deve ser um texto curto`,
         40,
       ),
-      notes: this.normalizeOptionalShortText(
+      notes: normalizeOptionalShortText(
         exercise.notes,
         `Observacoes do exercicio ${index + 1} devem ser texto`,
         500,
@@ -333,46 +338,6 @@ export class WorkoutsService {
     return value;
   }
 
-  private normalizeOptionalShortText(
-    value: unknown,
-    errorMessage: string,
-    maxLength: number,
-  ): string | null {
-    if (value === undefined || value === null || value === '') {
-      return null;
-    }
-
-    if (typeof value !== 'string' && typeof value !== 'number') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = String(value).trim();
-
-    if (!normalizedValue) {
-      return null;
-    }
-
-    if (normalizedValue.length > maxLength) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
-  }
-
-  private normalizeRequiredText(value: string, errorMessage: string): string {
-    if (typeof value !== 'string') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = value.trim();
-
-    if (!normalizedValue) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
-  }
-
   private normalizeInteger(value: number, errorMessage: string, minimum: number): number {
     if (!Number.isInteger(value) || value < minimum) {
       throw new BadRequestException(errorMessage);
@@ -381,21 +346,4 @@ export class WorkoutsService {
     return value;
   }
 
-  private async findProfessionalStudentOrFail(
-    studentId: number,
-    professionalId: number,
-  ): Promise<Student> {
-    const student = await this.studentsRepository.findOne({
-      where: {
-        id: studentId,
-        professionalId,
-      },
-    });
-
-    if (!student) {
-      throw new NotFoundException('Aluno nao encontrado');
-    }
-
-    return student;
-  }
 }

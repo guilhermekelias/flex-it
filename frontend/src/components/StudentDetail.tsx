@@ -25,6 +25,13 @@ import {
   type WorkoutPayload,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
+import { calculateBmi, formatMetricValue } from '../utils/metricDisplay';
+import {
+  getObservationSenderLabel,
+  getObservationSenderRole,
+} from '../utils/observationDisplay';
+import { formatAge, getInitials } from '../utils/studentDisplay';
+import { NutritionMealSummaryList } from './NutritionMealSummaryList';
 import {
   createEmptyWorkoutFormValues,
   getWorkoutFormValues,
@@ -43,6 +50,7 @@ import {
   NutritionPlanForm,
   type NutritionPlanFormValues,
 } from './NutritionPlanForm';
+import { WorkoutExerciseSummaryList } from './WorkoutExerciseSummaryList';
 
 type StudentDetailStudent = {
   id: number;
@@ -61,114 +69,8 @@ type StudentDetailProps = {
   onWorkoutsChanged?: () => void;
 };
 
-function getInitials(name: string) {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || 'AL';
-}
-
-function formatAge(age: number) {
-  return Number.isFinite(age) && age > 0 ? `${age} anos` : 'Idade nao informada';
-}
-
 function getDisplayGoal(goal: string) {
   return goal.trim() || 'Objetivo nao informado';
-}
-
-function getObservationSenderRole(observation: Observation) {
-  return observation.senderRole === 'student' ? 'student' : 'professional';
-}
-
-function getObservationSenderLabel(observation: Observation) {
-  return getObservationSenderRole(observation) === 'student' ? 'Aluno' : 'Profissional';
-}
-
-function formatMetricValue(value: number | null, unit: string) {
-  if (value === null || !Number.isFinite(value)) {
-    return '--';
-  }
-
-  return `${value.toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-  })} ${unit}`;
-}
-
-function calculateBmi(weightKg: number | null, heightCm: number | null) {
-  if (
-    weightKg === null ||
-    heightCm === null ||
-    !Number.isFinite(weightKg) ||
-    !Number.isFinite(heightCm) ||
-    weightKg <= 0 ||
-    heightCm <= 0
-  ) {
-    return '--';
-  }
-
-  const heightMeters = heightCm / 100;
-  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  });
-}
-
-function getStructuredWorkoutExercises(workout: Workout) {
-  return Array.isArray(workout.exercises)
-    ? workout.exercises.filter((exercise) => exercise.name.trim())
-    : [];
-}
-
-function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkoutExercises>[number]) {
-  const meta: string[] = [];
-
-  if (exercise.sets) {
-    meta.push(`${exercise.sets} series`);
-  }
-
-  if (exercise.reps) {
-    meta.push(`${exercise.reps} reps`);
-  }
-
-  if (exercise.rest) {
-    meta.push(`${exercise.rest} descanso`);
-  }
-
-  return meta.join(' | ');
-}
-
-function getStructuredNutritionMeals(nutritionPlan: NutritionPlan) {
-  return Array.isArray(nutritionPlan.meals)
-    ? nutritionPlan.meals
-        .map((meal) => ({
-          ...meal,
-          foods: Array.isArray(meal.foods)
-            ? meal.foods.filter((food) => food.name.trim())
-            : [],
-        }))
-        .filter((meal) => meal.name.trim() && meal.foods.length > 0)
-    : [];
-}
-
-function getNutritionFoodMeta(
-  food: ReturnType<typeof getStructuredNutritionMeals>[number]['foods'][number],
-) {
-  const meta: string[] = [];
-
-  if (food.quantity) {
-    meta.push(food.quantity);
-  }
-
-  if (typeof food.calories === 'number' && Number.isFinite(food.calories)) {
-    meta.push(`${food.calories} kcal`);
-  }
-
-  return meta.join(' | ');
 }
 
 export function StudentDetail({
@@ -710,62 +612,41 @@ export function StudentDetail({
             ) : workouts.length === 0 ? (
               <p>Nenhum treino cadastrado para este aluno.</p>
             ) : (
-              workouts.map((workout) => {
-                const workoutExercises = getStructuredWorkoutExercises(workout);
+              workouts.map((workout) => (
+                <article className="student-detail-note-item" key={workout.id}>
+                  <strong>{workout.name}</strong>
+                  {workout.description && <p>{workout.description}</p>}
 
-                return (
-                  <article className="student-detail-note-item" key={workout.id}>
-                    <strong>{workout.name}</strong>
-                    {workout.description && <p>{workout.description}</p>}
+                  <div className="student-detail-card-meta">
+                    <span>{workout.type}</span>
+                    <span>{workout.durationMinutes} min</span>
+                    <span>{workout.exercisesCount} exercicios</span>
+                  </div>
 
-                    <div className="student-detail-card-meta">
-                      <span>{workout.type}</span>
-                      <span>{workout.durationMinutes} min</span>
-                      <span>{workout.exercisesCount} exercicios</span>
-                    </div>
+                  <WorkoutExerciseSummaryList workout={workout} />
 
-                    {workoutExercises.length > 0 && (
-                      <div className="workout-exercise-summary-list">
-                        {workoutExercises.map((exercise, index) => {
-                          const exerciseMeta = getExerciseMeta(exercise);
+                  <span>Atualizado em {formatObservationDate(workout.updatedAt)}</span>
 
-                          return (
-                            <div
-                              className="workout-exercise-summary-item"
-                              key={`${exercise.name}-${index}`}
-                            >
-                              <strong>{exercise.name}</strong>
-                              {exerciseMeta && <span>{exerciseMeta}</span>}
-                              {exercise.notes && <p>{exercise.notes}</p>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                  <div className="student-card-actions">
+                    <button
+                      className="student-detail-button"
+                      onClick={() => handleEditWorkout(workout)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
 
-                    <span>Atualizado em {formatObservationDate(workout.updatedAt)}</span>
-
-                    <div className="student-card-actions">
-                      <button
-                        className="student-detail-button"
-                        onClick={() => handleEditWorkout(workout)}
-                        type="button"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        className="student-remove-button"
-                        disabled={removingWorkoutId === workout.id}
-                        onClick={() => handleRemoveWorkout(workout.id)}
-                        type="button"
-                      >
-                        {removingWorkoutId === workout.id ? 'Removendo...' : 'Remover'}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
+                    <button
+                      className="student-remove-button"
+                      disabled={removingWorkoutId === workout.id}
+                      onClick={() => handleRemoveWorkout(workout.id)}
+                      type="button"
+                    >
+                      {removingWorkoutId === workout.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  </div>
+                </article>
+              ))
             )}
           </div>
         </article>
@@ -812,85 +693,49 @@ export function StudentDetail({
             ) : nutritionPlans.length === 0 ? (
               <p>Nenhum plano alimentar cadastrado para este aluno.</p>
             ) : (
-              nutritionPlans.map((nutritionPlan) => {
-                const nutritionPlanMeals = getStructuredNutritionMeals(nutritionPlan);
+              nutritionPlans.map((nutritionPlan) => (
+                <article className="student-detail-note-item" key={nutritionPlan.id}>
+                  <strong>{nutritionPlan.name}</strong>
+                  <p>{nutritionPlan.objective}</p>
 
-                return (
-                  <article className="student-detail-note-item" key={nutritionPlan.id}>
-                    <strong>{nutritionPlan.name}</strong>
-                    <p>{nutritionPlan.objective}</p>
+                  <div className="student-detail-card-meta">
+                    <span>{nutritionPlan.calories} kcal</span>
+                    <span>{nutritionPlan.mealsCount} refeicoes</span>
+                    <span>{nutritionPlan.proteinGrams}g proteinas</span>
+                  </div>
 
-                    <div className="student-detail-card-meta">
-                      <span>{nutritionPlan.calories} kcal</span>
-                      <span>{nutritionPlan.mealsCount} refeicoes</span>
-                      <span>{nutritionPlan.proteinGrams}g proteinas</span>
-                    </div>
+                  <div className="student-detail-card-meta">
+                    <span>{nutritionPlan.carbsGrams}g carboidratos</span>
+                    <span>{nutritionPlan.fatGrams}g gorduras</span>
+                    <span>{formatObservationDate(nutritionPlan.updatedAt)}</span>
+                  </div>
 
-                    <div className="student-detail-card-meta">
-                      <span>{nutritionPlan.carbsGrams}g carboidratos</span>
-                      <span>{nutritionPlan.fatGrams}g gorduras</span>
-                      <span>{formatObservationDate(nutritionPlan.updatedAt)}</span>
-                    </div>
+                  <NutritionMealSummaryList nutritionPlan={nutritionPlan} />
 
-                    {nutritionPlanMeals.length > 0 && (
-                      <div className="nutrition-meal-summary-list">
-                        {nutritionPlanMeals.map((meal, mealIndex) => (
-                          <section
-                            className="nutrition-meal-summary-item"
-                            key={`${meal.name}-${mealIndex}`}
-                          >
-                            <div className="nutrition-meal-summary-heading">
-                              <strong>{meal.name}</strong>
-                              {meal.time && <span>{meal.time}</span>}
-                            </div>
+                  {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
 
-                            <div className="nutrition-food-summary-list">
-                              {meal.foods.map((food, foodIndex) => {
-                                const foodMeta = getNutritionFoodMeta(food);
+                  <span>Atualizado em {formatObservationDate(nutritionPlan.updatedAt)}</span>
 
-                                return (
-                                  <div
-                                    className="nutrition-food-summary-item"
-                                    key={`${food.name}-${foodIndex}`}
-                                  >
-                                    <strong>{food.name}</strong>
-                                    {foodMeta && <span>{foodMeta}</span>}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </section>
-                        ))}
-                      </div>
-                    )}
+                  <div className="student-card-actions">
+                    <button
+                      className="student-detail-button"
+                      onClick={() => handleEditNutritionPlan(nutritionPlan)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
 
-                    {nutritionPlan.notes && <p>{nutritionPlan.notes}</p>}
-
-                    <span>Atualizado em {formatObservationDate(nutritionPlan.updatedAt)}</span>
-
-                    <div className="student-card-actions">
-                      <button
-                        className="student-detail-button"
-                        onClick={() => handleEditNutritionPlan(nutritionPlan)}
-                        type="button"
-                      >
-                        Editar
-                      </button>
-
-                      <button
-                        className="student-remove-button"
-                        disabled={removingNutritionPlanId === nutritionPlan.id}
-                        onClick={() => handleRemoveNutritionPlan(nutritionPlan.id)}
-                        type="button"
-                      >
-                        {removingNutritionPlanId === nutritionPlan.id
-                          ? 'Removendo...'
-                          : 'Remover'}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
+                    <button
+                      className="student-remove-button"
+                      disabled={removingNutritionPlanId === nutritionPlan.id}
+                      onClick={() => handleRemoveNutritionPlan(nutritionPlan.id)}
+                      type="button"
+                    >
+                      {removingNutritionPlanId === nutritionPlan.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  </div>
+                </article>
+              ))
             )}
           </div>
         </article>

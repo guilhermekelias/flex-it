@@ -10,6 +10,8 @@ import {
   type Workout,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
+import { calculateBmi, formatMetricValue } from '../utils/metricDisplay';
+import { formatAge, getInitials } from '../utils/studentDisplay';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
 import { StudentDetail } from './StudentDetail';
 
@@ -40,21 +42,6 @@ type DashboardPageProps = {
 
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'profissional';
-}
-
-function getInitials(name: string) {
-  const initials = name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || 'AL';
-}
-
-function formatAge(age: number) {
-  return Number.isFinite(age) && age > 0 ? `${age} anos` : 'Idade n\u00e3o informada';
 }
 
 function formatAverageDuration(workouts: Workout[]) {
@@ -90,36 +77,6 @@ function getNutritionObjectives(nutritionPlans: NutritionPlan[]) {
 
 function getStudentName(students: Student[], studentId: number) {
   return students.find((student) => student.id === studentId)?.name || 'Aluno nao encontrado';
-}
-
-function formatMetricValue(value: number | null, unit: string) {
-  if (value === null || !Number.isFinite(value)) {
-    return '--';
-  }
-
-  return `${value.toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-  })} ${unit}`;
-}
-
-function calculateBmi(weightKg: number | null, heightCm: number | null) {
-  if (
-    weightKg === null ||
-    heightCm === null ||
-    !Number.isFinite(weightKg) ||
-    !Number.isFinite(heightCm) ||
-    weightKg <= 0 ||
-    heightCm <= 0
-  ) {
-    return '--';
-  }
-
-  const heightMeters = heightCm / 100;
-  return (weightKg / heightMeters ** 2).toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  });
 }
 
 function getMetricsForStudent(metrics: Metric[], studentId: number) {
