@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { findProfessionalStudentOrFail } from '../common/students/find-professional-student';
 import { Student } from '../students/entities/student.entity';
 import { Metric } from './entities/metric.entity';
 
@@ -37,7 +38,7 @@ export class MetricsService {
     data: CreateMetricData,
   ): Promise<Metric> {
     const metricData = this.normalizeMetricData(data, true);
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     const metric = this.metricsRepository.create({
       ...metricData,
@@ -65,7 +66,7 @@ export class MetricsService {
     studentId: number,
     professionalId: number,
   ): Promise<Metric[]> {
-    await this.findProfessionalStudentOrFail(studentId, professionalId);
+    await findProfessionalStudentOrFail(this.studentsRepository, studentId, professionalId);
 
     return this.metricsRepository.find({
       where: {
@@ -295,21 +296,4 @@ export class MetricsService {
     ].some((value) => value !== undefined && value !== null);
   }
 
-  private async findProfessionalStudentOrFail(
-    studentId: number,
-    professionalId: number,
-  ): Promise<Student> {
-    const student = await this.studentsRepository.findOne({
-      where: {
-        id: studentId,
-        professionalId,
-      },
-    });
-
-    if (!student) {
-      throw new NotFoundException('Aluno nao encontrado');
-    }
-
-    return student;
-  }
 }

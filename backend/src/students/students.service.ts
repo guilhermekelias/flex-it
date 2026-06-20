@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Raw, Repository } from 'typeorm';
+import {
+  normalizeEmailField,
+  normalizeRequiredText,
+} from '../common/validation/text-normalizers';
 import { User, UserRole } from '../users/entities/user.entity';
 import { Student } from './entities/student.entity';
 
@@ -71,11 +75,15 @@ export class StudentsService {
     const studentData: Partial<NormalizedStudentData> = {};
 
     if (data.name !== undefined || requireAllFields) {
-      studentData.name = this.normalizeRequiredText(data.name, 'Nome do aluno e obrigatorio');
+      studentData.name = normalizeRequiredText(data.name, 'Nome do aluno e obrigatorio');
     }
 
     if (data.email !== undefined || requireAllFields) {
-      const email = this.normalizeEmailField(data.email);
+      const email = normalizeEmailField(
+        data.email,
+        'E-mail do aluno e obrigatorio',
+        'E-mail do aluno invalido',
+      );
       studentData.email = email;
       studentData.userId = await this.resolveStudentUserId(email);
     }
@@ -85,37 +93,10 @@ export class StudentsService {
     }
 
     if (data.goal !== undefined || requireAllFields) {
-      studentData.goal = this.normalizeRequiredText(data.goal, 'Objetivo do aluno e obrigatorio');
+      studentData.goal = normalizeRequiredText(data.goal, 'Objetivo do aluno e obrigatorio');
     }
 
     return studentData;
-  }
-
-  private normalizeRequiredText(value: unknown, errorMessage: string): string {
-    if (typeof value !== 'string') {
-      throw new BadRequestException(errorMessage);
-    }
-
-    const normalizedValue = value.trim();
-
-    if (!normalizedValue) {
-      throw new BadRequestException(errorMessage);
-    }
-
-    return normalizedValue;
-  }
-
-  private normalizeEmailField(value: unknown): string {
-    const normalizedEmail = this.normalizeRequiredText(
-      value,
-      'E-mail do aluno e obrigatorio',
-    ).toLowerCase();
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      throw new BadRequestException('E-mail do aluno invalido');
-    }
-
-    return normalizedEmail;
   }
 
   private normalizeAge(value: unknown): number {

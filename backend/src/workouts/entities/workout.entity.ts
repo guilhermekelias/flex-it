@@ -1,14 +1,5 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Student } from '../../students/entities/student.entity';
-import { User } from '../../users/entities/user.entity';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { StudentProfessionalRecord } from '../../common/entities/student-professional-record.entity';
 
 export type WorkoutExercise = {
   name: string;
@@ -19,7 +10,7 @@ export type WorkoutExercise = {
 };
 
 @Entity('workouts')
-export class Workout {
+export class Workout extends StudentProfessionalRecord {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -44,24 +35,4 @@ export class Workout {
     default: () => "'[]'::jsonb",
   })
   exercises: WorkoutExercise[];
-
-  @Column({ name: 'student_id' })
-  studentId: number;
-
-  @ManyToOne(() => Student, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'student_id' })
-  student: Student;
-
-  @Column({ name: 'professional_id' })
-  professionalId: number;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'professional_id' })
-  professional: User;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

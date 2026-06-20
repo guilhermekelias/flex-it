@@ -51,7 +51,7 @@ services:
     image: ${FRONTEND_PRODUCTION_IMAGE:-ghcr.io/guilhermekelias/flex-it-frontend:latest}
     pull_policy: always
     expose:
-      - "${FRONTEND_PORT:-80}"
+      - "${FRONTEND_PORT:-8080}"
     networks:
       - production-network
     restart: unless-stopped
@@ -71,7 +71,7 @@ services:
       BACKEND_PORT: ${BACKEND_PORT:-3000}
 
       FRONTEND_PRODUCTION_HOST: frontend-production
-      FRONTEND_PORT: ${FRONTEND_PORT:-80}
+      FRONTEND_PORT: ${FRONTEND_PORT:-8080}
     volumes:
       - /opt/flex-it/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - /opt/flex-it/certbot/www:/var/www/certbot:ro

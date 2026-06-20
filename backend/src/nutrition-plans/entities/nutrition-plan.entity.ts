@@ -1,14 +1,5 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Student } from '../../students/entities/student.entity';
-import { User } from '../../users/entities/user.entity';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { StudentProfessionalRecord } from '../../common/entities/student-professional-record.entity';
 
 export type NutritionPlanFood = {
   name: string;
@@ -23,7 +14,7 @@ export type NutritionPlanMeal = {
 };
 
 @Entity('nutrition_plans')
-export class NutritionPlan {
+export class NutritionPlan extends StudentProfessionalRecord {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -57,24 +48,4 @@ export class NutritionPlan {
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
-
-  @Column({ name: 'student_id' })
-  studentId: number;
-
-  @ManyToOne(() => Student, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'student_id' })
-  student: Student;
-
-  @Column({ name: 'professional_id' })
-  professionalId: number;
-
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'professional_id' })
-  professional: User;
-
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 }

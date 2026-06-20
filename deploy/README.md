@@ -2,7 +2,7 @@
 
 Este projeto usa o container `nginx` do `docker-compose.yml` como gateway publico:
 
-- `/` encaminha para `frontend-production:80`
+- `/` encaminha para `frontend-production:8080`
 - `/api/` encaminha para `backend-production:3000`
 - PostgreSQL e backend nao precisam expor portas na EC2
 
