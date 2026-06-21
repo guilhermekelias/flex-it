@@ -78,7 +78,7 @@ export function App() {
   };
 
   const handleSessionExpired = () => {
-    clearSession('Sessao expirada. Faca login novamente.');
+    clearSession('Sessão expirada. Faça login novamente.');
   };
 
   const handleApiError = (error: unknown) => {
@@ -150,7 +150,7 @@ export function App() {
       }
     } catch (error) {
       setMessage(
-        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor',
+        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor.',
       );
     }
   };
@@ -173,10 +173,10 @@ export function App() {
       }
 
       setAuthView('login');
-      setMessage(data.message || 'Conta criada. Faca login para continuar.');
+      setMessage(data.message || 'Conta criada. Faça login para continuar.');
     } catch (error) {
       setMessage(
-        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor',
+        error instanceof ApiRequestError ? error.message : 'Erro ao conectar com o servidor.',
       );
     }
   };

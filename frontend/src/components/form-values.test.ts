@@ -13,15 +13,15 @@ import {
 } from './WorkoutForm';
 import type { Metric, NutritionPlan, Workout } from '../services/api';
 
-describe('valores iniciais dos formularios', () => {
-  it('cria valores vazios para metricas mantendo a data atual no formato do input', () => {
+describe('valores iniciais dos formulários', () => {
+  it('cria valores vazios para métricas mantendo a data atual no formato do input', () => {
     const values = createEmptyMetricFormValues();
 
     expect(values.weightKg).toBe('');
     expect(values.recordedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('transforma uma metrica existente em valores editaveis', () => {
+  it('transforma uma métrica existente em valores editáveis', () => {
     const metric: Metric = {
       id: 1,
       weightKg: 72.4,
@@ -46,12 +46,12 @@ describe('valores iniciais dos formularios', () => {
     });
   });
 
-  it('cria e transforma valores de treino com exercicios estruturados', () => {
+  it('cria e transforma valores de treino com exercícios estruturados', () => {
     const workout: Workout = {
       id: 1,
       name: 'Treino A',
       description: null,
-      type: 'Forca',
+      type: 'Força',
       durationMinutes: 50,
       exercisesCount: 1,
       exercises: [
@@ -76,14 +76,14 @@ describe('valores iniciais dos formularios', () => {
     expect(getWorkoutFormValues(workout)).toMatchObject({
       name: 'Treino A',
       description: '',
-      type: 'Forca',
+      type: 'Força',
       durationMinutes: '50',
       exercisesCount: '1',
       usesStructuredExercises: true,
     });
   });
 
-  it('cria e transforma valores de plano alimentar com refeicoes estruturadas', () => {
+  it('cria e transforma valores de plano alimentar com refeições estruturadas', () => {
     const nutritionPlan: NutritionPlan = {
       id: 1,
       name: 'Plano hipertrofia',
@@ -95,7 +95,7 @@ describe('valores iniciais dos formularios', () => {
       mealsCount: 1,
       meals: [
         {
-          name: 'Cafe',
+          name: 'Café',
           time: null,
           foods: [
             {

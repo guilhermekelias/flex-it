@@ -106,7 +106,9 @@ describe('api service', () => {
   });
 
   it('normaliza mensagens de erro retornadas pela API', async () => {
-    mockFetch(jsonResponse({ message: ['E-mail invalido', 'Senha obrigatoria'] }, { status: 400 }));
+    mockFetch(
+      jsonResponse({ message: ['E-mail inválido', 'Senha obrigatória'] }, { status: 400 }),
+    );
 
     await expect(
       register({
@@ -117,11 +119,11 @@ describe('api service', () => {
       }),
     ).rejects.toMatchObject({
       status: 400,
-      message: 'E-mail invalido Senha obrigatoria',
+      message: 'E-mail inválido Senha obrigatória',
     });
   });
 
-  it('monta threads de observacao quando o endpoint novo ainda nao existe', async () => {
+  it('monta threads de observação quando o endpoint novo ainda não existe', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ message: 'Not found' }, { status: 404 }))
@@ -167,14 +169,14 @@ describe('api service', () => {
     localStorage.setItem('flexit_token', 'jwt-token');
     const fetchMock = mockFetch(new Response('', { status: 200 }));
 
-    await createStudent({ name: 'Ana', email: 'ana@example.com', age: 28, goal: 'Forca' });
-    await updateStudent(10, { name: 'Ana', email: 'ana@example.com', age: 29, goal: 'Forca' });
+    await createStudent({ name: 'Ana', email: 'ana@example.com', age: 28, goal: 'Força' });
+    await updateStudent(10, { name: 'Ana', email: 'ana@example.com', age: 29, goal: 'Força' });
     await deleteStudent(10);
     await getWorkouts();
     await getStudentWorkouts(10);
     await createStudentWorkout(10, {
       name: 'Treino A',
-      type: 'Forca',
+      type: 'Força',
       durationMinutes: 50,
     });
     await updateStudentWorkout(10, 20, { durationMinutes: 55 });
@@ -198,7 +200,7 @@ describe('api service', () => {
     await updateStudentMetric(10, 30, { weightKg: 73 });
     await deleteStudentMetric(10, 30);
     await getStudentObservations(10);
-    await createStudentObservation(10, { message: 'Boa evolucao' });
+    await createStudentObservation(10, { message: 'Boa evolução' });
     await getMyObservations();
     await createMyObservation({ studentId: 10, message: 'Mensagem do aluno' });
     await getMyWorkouts();

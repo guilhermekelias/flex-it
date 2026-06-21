@@ -104,7 +104,7 @@ const metrics: Metric[] = [
     heightCm: 170,
     bodyFatPercentage: 21.8,
     muscleMassKg: 54.6,
-    notes: 'Boa evolucao',
+    notes: 'Boa evolução',
     recordedAt: '2026-06-03T12:00:00Z',
     studentId: 10,
     professionalId: 1,
@@ -138,7 +138,7 @@ const nutritionPlans: NutritionPlan[] = [
     mealsCount: 1,
     meals: [
       {
-        name: 'Cafe da manha',
+        name: 'Café da manhã',
         time: '07:00',
         foods: [
           {
@@ -160,7 +160,7 @@ const nutritionPlans: NutritionPlan[] = [
 const observations: Observation[] = [
   {
     id: 50,
-    message: 'Manter hidratacao durante o treino.',
+    message: 'Manter hidratação durante o treino.',
     studentId: 10,
     professionalId: 1,
     senderRole: 'professional',
@@ -202,8 +202,8 @@ beforeEach(() => {
   configureResolvedApiMocks();
 });
 
-describe('componentes de autenticacao e navegacao', () => {
-  it('renderiza o login e repassa as acoes do formulario', () => {
+describe('componentes de autenticação e navegação', () => {
+  it('renderiza o login e repassa as ações do formulário', () => {
     const onEmailChange = vi.fn();
     const onPasswordChange = vi.fn();
     const onSubmit = vi.fn((event: Event) => event.preventDefault());
@@ -213,7 +213,7 @@ describe('componentes de autenticacao e navegacao', () => {
       <LoginPage
         email=""
         password=""
-        message="Credenciais invalidas"
+        message="Credenciais inválidas"
         onCreateAccountClick={onCreateAccountClick}
         onEmailChange={onEmailChange}
         onPasswordChange={onPasswordChange}
@@ -230,7 +230,7 @@ describe('componentes de autenticacao e navegacao', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Entrar' }).closest('form')!);
     fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
-    expect(screen.getByRole('alert').textContent).toContain('Credenciais invalidas');
+    expect(screen.getByRole('alert').textContent).toContain('Credenciais inválidas');
     expect(onEmailChange).toHaveBeenCalledWith('patricia@example.com');
     expect(onPasswordChange).toHaveBeenCalledWith('123456');
     expect(onSubmit).toHaveBeenCalled();
@@ -264,12 +264,12 @@ describe('componentes de autenticacao e navegacao', () => {
     });
   });
 
-  it('aciona a aba escolhida na navegacao inferior', () => {
+  it('aciona a aba escolhida na navegação inferior', () => {
     const onTabChange = vi.fn();
 
     render(<BottomNavigation activeTab="home" onTabChange={onTabChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Metricas|Métricas/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
 
     expect(onTabChange).toHaveBeenCalledWith('metrics');
   });
@@ -306,14 +306,14 @@ describe('fluxos principais do frontend', () => {
       expect(screen.getAllByText('Plano hipertrofia').length).toBeGreaterThan(0),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Metricas|Métricas/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
     expect(await screen.findByText('Peso atual')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Alunos' }));
     expect(screen.getByText('Ana Silva')).toBeTruthy();
   });
 
-  it('renderiza detalhes do aluno em abas com treinos, dietas, metricas e observacoes', async () => {
+  it('renderiza detalhes do aluno em abas com treinos, dietas, métricas e observações', async () => {
     render(
       <StudentDetail
         student={students[0]}
@@ -335,11 +335,11 @@ describe('fluxos principais do frontend', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Dietas' }));
     expect(await screen.findByText('Plano hipertrofia')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Metricas' }));
-    expect(await screen.findByText('Boa evolucao')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
+    expect(await screen.findByText('Boa evolução')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Comunicacao' }));
-    expect(await screen.findByText('Manter hidratacao durante o treino.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Comunicação' }));
+    expect(await screen.findByText('Manter hidratação durante o treino.')).toBeTruthy();
   });
 
   it('renderiza portal do aluno e alterna entre as abas carregadas', async () => {
@@ -352,7 +352,7 @@ describe('fluxos principais do frontend', () => {
     );
 
     await waitFor(() => expect(api.getMyWorkouts).toHaveBeenCalled());
-    expect(screen.getAllByText(/Ola, Ana|Olá, Ana/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Olá, Ana/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: 'Treinos' }));
     await waitFor(() => expect(screen.getAllByText('Treino A').length).toBeGreaterThan(0));
@@ -362,10 +362,10 @@ describe('fluxos principais do frontend', () => {
       expect(screen.getAllByText('Plano hipertrofia').length).toBeGreaterThan(0),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Metricas|Métricas/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
     expect(await screen.findByText('Peso')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Comunicacao' }));
-    expect(await screen.findByText('Manter hidratacao durante o treino.')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Comunicação' }));
+    expect(await screen.findByText('Manter hidratação durante o treino.')).toBeTruthy();
   });
 });

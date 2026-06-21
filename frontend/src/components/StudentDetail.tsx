@@ -75,12 +75,12 @@ const STUDENT_DETAIL_TABS: Array<{ id: StudentDetailTab; label: string }> = [
   { id: 'summary', label: 'Resumo' },
   { id: 'workouts', label: 'Treinos' },
   { id: 'nutrition', label: 'Dietas' },
-  { id: 'metrics', label: 'Metricas' },
-  { id: 'observations', label: 'Comunicacao' },
+  { id: 'metrics', label: 'Métricas' },
+  { id: 'observations', label: 'Comunicação' },
 ];
 
 function getDisplayGoal(goal: string) {
-  return goal.trim() || 'Objetivo nao informado';
+  return goal.trim() || 'Objetivo não informado';
 }
 
 export function StudentDetail({
@@ -154,7 +154,7 @@ export function StudentDetail({
         console.error(error);
 
         if (isCurrentStudent) {
-          setWorkoutFeedback('Nao foi possivel carregar os treinos.');
+          setWorkoutFeedback('Não foi possível carregar os treinos.');
         }
       } finally {
         if (isCurrentStudent) {
@@ -192,7 +192,7 @@ export function StudentDetail({
         console.error(error);
 
         if (isCurrentStudent) {
-          setObservationFeedback('Nao foi possivel carregar as observacoes.');
+          setObservationFeedback('Não foi possível carregar as observações.');
         }
       } finally {
         if (isCurrentStudent) {
@@ -244,7 +244,7 @@ export function StudentDetail({
         console.error(error);
 
         if (isCurrentStudent) {
-          setNutritionPlanFeedback('Nao foi possivel carregar os planos alimentares.');
+          setNutritionPlanFeedback('Não foi possível carregar os planos alimentares.');
         }
       } finally {
         if (isCurrentStudent) {
@@ -284,7 +284,7 @@ export function StudentDetail({
         console.error(error);
 
         if (isCurrentStudent) {
-          setMetricFeedback('Nao foi possivel carregar as metricas.');
+          setMetricFeedback('Não foi possível carregar as métricas.');
         }
       } finally {
         if (isCurrentStudent) {
@@ -325,7 +325,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setObservationFeedback('Nao foi possivel salvar a observacao.');
+      setObservationFeedback('Não foi possível salvar a observação.');
     } finally {
       setIsSavingObservation(false);
     }
@@ -369,7 +369,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setWorkoutFeedback('Nao foi possivel salvar o treino.');
+      setWorkoutFeedback('Não foi possível salvar o treino.');
     } finally {
       setIsSavingWorkout(false);
     }
@@ -404,7 +404,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setWorkoutFeedback('Nao foi possivel remover o treino.');
+      setWorkoutFeedback('Não foi possível remover o treino.');
     } finally {
       setRemovingWorkoutId(null);
     }
@@ -456,7 +456,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setNutritionPlanFeedback('Nao foi possivel salvar o plano alimentar.');
+      setNutritionPlanFeedback('Não foi possível salvar o plano alimentar.');
     } finally {
       setIsSavingNutritionPlan(false);
     }
@@ -491,7 +491,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setNutritionPlanFeedback('Nao foi possivel remover o plano alimentar.');
+      setNutritionPlanFeedback('Não foi possível remover o plano alimentar.');
     } finally {
       setRemovingNutritionPlanId(null);
     }
@@ -510,11 +510,11 @@ export function StudentDetail({
             metric.id === updatedMetric.id ? updatedMetric : metric,
           ),
         );
-        setMetricFeedback('Metrica atualizada.');
+        setMetricFeedback('Métrica atualizada.');
       } else {
         const newMetric = await createStudentMetric(student.id, metricData);
         setMetrics((currentMetrics) => [newMetric, ...currentMetrics]);
-        setMetricFeedback('Metrica registrada.');
+        setMetricFeedback('Métrica registrada.');
       }
 
       resetMetricForm();
@@ -526,7 +526,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setMetricFeedback('Nao foi possivel salvar a metrica.');
+      setMetricFeedback('Não foi possível salvar a métrica.');
     } finally {
       setIsSavingMetric(false);
     }
@@ -535,7 +535,7 @@ export function StudentDetail({
   const handleEditMetric = (metric: Metric) => {
     setEditingMetricId(metric.id);
     setMetricFormValues(getMetricFormValues(metric));
-    setMetricFeedback('Editando metrica selecionada.');
+    setMetricFeedback('Editando métrica selecionada.');
   };
 
   const handleRemoveMetric = async (metricId: number) => {
@@ -550,7 +550,7 @@ export function StudentDetail({
         resetMetricForm();
       }
 
-      setMetricFeedback('Metrica removida.');
+      setMetricFeedback('Métrica removida.');
       onMetricsChanged?.();
     } catch (error) {
       if (error instanceof ApiUnauthorizedError) {
@@ -559,7 +559,7 @@ export function StudentDetail({
       }
 
       console.error(error);
-      setMetricFeedback('Nao foi possivel remover a metrica.');
+      setMetricFeedback('Não foi possível remover a métrica.');
     } finally {
       setRemovingMetricId(null);
     }
@@ -592,7 +592,7 @@ export function StudentDetail({
       modifier: 'student-portal-summary-stat-diet',
     },
     {
-      label: 'Ultima metrica',
+      label: 'Última métrica',
       value: isLoadingMetrics
         ? '...'
         : latestMetric
@@ -602,7 +602,7 @@ export function StudentDetail({
         ? 'Carregando'
         : latestMetric
           ? formatObservationDate(latestMetric.recordedAt)
-          : 'Sem avaliacao',
+          : 'Sem avaliação',
       modifier: 'student-portal-summary-stat-metric',
     },
     {
@@ -637,8 +637,8 @@ export function StudentDetail({
 
       <section className="student-detail-info-grid" aria-label="Dados principais do aluno">
         <article>
-          <span>Email</span>
-          <strong>{student.email || 'Email nao informado'}</strong>
+          <span>E-mail</span>
+          <strong>{student.email || 'E-mail não informado'}</strong>
         </article>
         <article>
           <span>Idade</span>
@@ -650,7 +650,7 @@ export function StudentDetail({
         </article>
       </section>
 
-      <nav className="student-portal-tabs student-detail-tabs" aria-label="Areas do aluno">
+      <nav className="student-portal-tabs student-detail-tabs" aria-label="Áreas do aluno">
         {STUDENT_DETAIL_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
 
@@ -671,7 +671,7 @@ export function StudentDetail({
       </nav>
 
       <section
-        aria-label={`Conteudo de ${activeTabLabel}`}
+        aria-label={`Conteúdo de ${activeTabLabel}`}
         aria-labelledby={`student-detail-tab-${activeTab}`}
         className="student-portal-tab-panel student-detail-tab-panel"
         id="student-detail-panel"
@@ -684,7 +684,7 @@ export function StudentDetail({
             <div className="student-portal-summary-heading">
               <span className="student-portal-kicker">Resumo</span>
               <h2>Acompanhamento de {student.name}</h2>
-              <p>Visao geral do cadastro, atividades e comunicacao deste aluno.</p>
+              <p>Visão geral do cadastro, atividades e comunicação deste aluno.</p>
             </div>
 
             <div className="student-portal-summary-grid">
@@ -741,7 +741,7 @@ export function StudentDetail({
                       <div className="student-detail-card-meta">
                         <span>{workout.type}</span>
                         <span>{workout.durationMinutes} min</span>
-                        <span>{workout.exercisesCount} exercicios</span>
+                        <span>{workout.exercisesCount} exercícios</span>
                       </div>
 
                       <WorkoutExerciseSummaryList workout={workout} />
@@ -804,7 +804,7 @@ export function StudentDetail({
                     <strong>{latestNutritionPlan.calories} kcal</strong>
                   </div>
                   <div>
-                    <span>Refeicoes</span>
+                    <span>Refeições</span>
                     <strong>{latestNutritionPlan.mealsCount} ao dia</strong>
                   </div>
                   <div>
@@ -827,8 +827,8 @@ export function StudentDetail({
 
                       <div className="student-detail-card-meta">
                         <span>{nutritionPlan.calories} kcal</span>
-                        <span>{nutritionPlan.mealsCount} refeicoes</span>
-                        <span>{nutritionPlan.proteinGrams}g proteinas</span>
+                        <span>{nutritionPlan.mealsCount} refeições</span>
+                        <span>{nutritionPlan.proteinGrams}g proteínas</span>
                       </div>
 
                       <div className="student-detail-card-meta">
@@ -872,11 +872,11 @@ export function StudentDetail({
         )}
 
         {activeTab === 'metrics' && (
-          <section className="student-detail-tab-content" aria-label="Metricas do aluno">
+          <section className="student-detail-tab-content" aria-label="Métricas do aluno">
             <article className="dashboard-panel student-detail-card student-detail-card-metrics">
               <div className="student-detail-card-heading">
-                <span className="dashboard-section-kicker">Metricas</span>
-                <h2>{editingMetricId !== null ? 'Editar metrica' : 'Nova metrica'}</h2>
+                <span className="dashboard-section-kicker">Métricas</span>
+                <h2>{editingMetricId !== null ? 'Editar métrica' : 'Nova métrica'}</h2>
               </div>
 
               <MetricForm
@@ -917,13 +917,13 @@ export function StudentDetail({
 
               <div className="student-detail-note-list">
                 {isLoadingMetrics ? (
-                  <p>Carregando metricas...</p>
+                  <p>Carregando métricas...</p>
                 ) : metrics.length === 0 ? (
-                  <p>Nenhuma metrica cadastrada para este aluno.</p>
+                  <p>Nenhuma métrica cadastrada para este aluno.</p>
                 ) : (
                   metrics.map((metric) => (
                     <article className="student-detail-note-item" key={metric.id}>
-                      <strong>Avaliacao de {formatObservationDate(metric.recordedAt)}</strong>
+                      <strong>Avaliação de {formatObservationDate(metric.recordedAt)}</strong>
 
                       <div className="student-detail-card-meta">
                         <span>Peso {formatMetricValue(metric.weightKg, 'kg')}</span>
@@ -968,7 +968,7 @@ export function StudentDetail({
         )}
 
         {activeTab === 'observations' && (
-          <section className="student-detail-tab-content" aria-label="Comunicacao com o aluno">
+          <section className="student-detail-tab-content" aria-label="Comunicação com o aluno">
             <article className="dashboard-panel student-detail-card student-detail-card-message">
               <div className="student-detail-card-heading">
                 <span className="dashboard-section-kicker">{'Comunica\u00e7\u00e3o'}</span>
@@ -1008,7 +1008,7 @@ export function StudentDetail({
                     onInput={(event) =>
                       setObservationMessage((event.target as HTMLTextAreaElement).value)
                     }
-                    placeholder="Escreva uma orientacao ou resposta para este aluno."
+                    placeholder="Escreva uma orientação ou resposta para este aluno."
                     rows={4}
                     value={observationMessage}
                   />

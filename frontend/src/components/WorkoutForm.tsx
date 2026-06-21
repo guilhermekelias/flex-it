@@ -162,19 +162,19 @@ export function WorkoutForm({
       }
 
       if (!name) {
-        setFormError(`Informe o nome do exercicio ${index + 1}.`);
+        setFormError(`Informe o nome do exercício ${index + 1}.`);
         return null;
       }
 
       const setsValue = sets ? Number(sets) : null;
 
       if (setsValue !== null && (!Number.isInteger(setsValue) || setsValue <= 0)) {
-        setFormError(`Series do exercicio ${index + 1} devem ser um numero positivo.`);
+        setFormError(`Séries do exercício ${index + 1} devem ser um número positivo.`);
         return null;
       }
 
       if (rest.length > 40) {
-        setFormError(`Descanso do exercicio ${index + 1} deve ser curto.`);
+        setFormError(`Descanso do exercício ${index + 1} deve ser curto.`);
         return null;
       }
 
@@ -198,7 +198,7 @@ export function WorkoutForm({
     const durationMinutes = Number(values.durationMinutes);
 
     if (!name || !type || !Number.isInteger(durationMinutes) || durationMinutes <= 0) {
-      setFormError('Preencha nome, tipo e duracao com valores validos.');
+      setFormError('Preencha nome, tipo e duração com valores válidos.');
       return;
     }
 
@@ -209,7 +209,7 @@ export function WorkoutForm({
     }
 
     if (!isEditing && normalizedExercises.length === 0) {
-      setFormError('Adicione pelo menos um exercicio ao treino.');
+      setFormError('Adicione pelo menos um exercício ao treino.');
       return;
     }
 
@@ -228,7 +228,7 @@ export function WorkoutForm({
       const legacyExercisesCount = Number(values.exercisesCount);
 
       if (!Number.isInteger(legacyExercisesCount) || legacyExercisesCount < 0) {
-        setFormError('Quantidade de exercicios deve ser zero ou maior.');
+        setFormError('Quantidade de exercícios deve ser zero ou maior.');
         return;
       }
 
@@ -252,12 +252,12 @@ export function WorkoutForm({
       </label>
 
       <label>
-        <span>Descricao</span>
+        <span>Descrição</span>
         <input
           onInput={(event) =>
             updateValue('description', (event.target as HTMLInputElement).value)
           }
-          placeholder="Orientacao geral do treino"
+          placeholder="Orientação geral do treino"
           type="text"
           value={values.description}
         />
@@ -267,7 +267,7 @@ export function WorkoutForm({
         <span>Tipo</span>
         <input
           onInput={(event) => updateValue('type', (event.target as HTMLInputElement).value)}
-          placeholder="Hipertrofia, forca, cardio"
+          placeholder="Hipertrofia, força, cardio"
           required
           type="text"
           value={values.type}
@@ -275,7 +275,7 @@ export function WorkoutForm({
       </label>
 
       <label>
-        <span>Duracao</span>
+        <span>Duração (em minutos)</span>
         <input
           min="1"
           onInput={(event) =>
@@ -291,8 +291,8 @@ export function WorkoutForm({
       <section className="workout-exercises-section" aria-labelledby="workout-exercises-title">
         <div className="workout-exercises-heading">
           <div>
-            <span id="workout-exercises-title">Exercicios</span>
-            <small>Monte a lista do dia com series, repeticoes e descanso.</small>
+            <span id="workout-exercises-title">Exercícios</span>
+            <small>Monte a lista do dia com séries, repetições e descanso.</small>
           </div>
 
           <button className="workout-exercise-add-button" onClick={addExercise} type="button">
@@ -304,17 +304,17 @@ export function WorkoutForm({
           {values.exercises.map((exercise, index) => (
             <article className="workout-exercise-item" key={index}>
               <div className="workout-exercise-item-heading">
-                <span className="workout-exercise-index" aria-label={`Exercicio ${index + 1}`}>
+                <span className="workout-exercise-index" aria-label={`Exercício ${index + 1}`}>
                   {index + 1}
                 </span>
 
                 <label className="workout-exercise-name-field">
-                  <span>Nome do exercicio</span>
+                  <span>Nome do exercício</span>
                   <input
                     onInput={(event) =>
                       updateExerciseValue(index, 'name', (event.target as HTMLInputElement).value)
                     }
-                    placeholder="Nome do exercicio"
+                    placeholder="Nome do exercício"
                     type="text"
                     value={exercise.name}
                   />
@@ -331,7 +331,7 @@ export function WorkoutForm({
 
               <div className="workout-exercise-grid">
                 <label>
-                  <span>Series</span>
+                  <span>Séries</span>
                   <input
                     min="1"
                     onInput={(event) =>
@@ -369,12 +369,12 @@ export function WorkoutForm({
               </div>
 
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <input
                   onInput={(event) =>
                     updateExerciseValue(index, 'notes', (event.target as HTMLInputElement).value)
                   }
-                  placeholder="Ex: Foco na contracao, nao travar cotovelos..."
+                  placeholder="Ex: Foco na contração, não travar cotovelos..."
                   type="text"
                   value={exercise.notes}
                 />
@@ -387,7 +387,7 @@ export function WorkoutForm({
       <div className="workout-form-actions">
         {isEditing && (
           <button className="dashboard-secondary-button" onClick={onCancelEdit} type="button">
-            Cancelar edicao
+            Cancelar edição
           </button>
         )}
 

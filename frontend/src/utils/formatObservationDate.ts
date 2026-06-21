@@ -27,7 +27,7 @@ export function formatObservationDate(value: string): string {
   const date = parseApiDate(value);
 
   if (Number.isNaN(date.getTime())) {
-    return 'Data nao informada';
+    return 'Data não informada';
   }
 
   return DATE_TIME_FORMATTER.format(date);
