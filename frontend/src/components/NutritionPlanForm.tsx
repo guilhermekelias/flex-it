@@ -316,7 +316,7 @@ export function NutritionPlanForm({
 
         if (!foodName) {
           setFormError(
-            `Informe o nome do alimento ${foodIndex + 1} em ${name || `refeicao ${mealIndex + 1}`}.`,
+            `Informe o nome do alimento ${foodIndex + 1} em ${name || `refeição ${mealIndex + 1}`}.`,
           );
           return null;
         }
@@ -324,7 +324,7 @@ export function NutritionPlanForm({
         const caloriesValue = calories ? Number(calories) : null;
 
         if (caloriesValue !== null && (!Number.isFinite(caloriesValue) || caloriesValue <= 0)) {
-          setFormError(`Calorias do alimento ${foodIndex + 1} devem ser um numero positivo.`);
+          setFormError(`Calorias do alimento ${foodIndex + 1} devem ser um número positivo.`);
           return null;
         }
 
@@ -340,7 +340,7 @@ export function NutritionPlanForm({
       }
 
       if (!name) {
-        setFormError(`Informe o nome da refeicao ${mealIndex + 1}.`);
+        setFormError(`Informe o nome da refeição ${mealIndex + 1}.`);
         return null;
       }
 
@@ -360,18 +360,18 @@ export function NutritionPlanForm({
     try {
       const name = values.name.trim();
       const objective = values.objective.trim();
-      const calories = parseInteger(values.calories, 'Calorias devem ser um numero inteiro.');
+      const calories = parseInteger(values.calories, 'Calorias devem ser um número inteiro.');
       const proteinGrams = parseInteger(
         values.proteinGrams,
-        'Proteinas devem ser um numero inteiro.',
+        'Proteínas devem ser um número inteiro.',
       );
       const carbsGrams = parseInteger(
         values.carbsGrams,
-        'Carboidratos devem ser um numero inteiro.',
+        'Carboidratos devem ser um número inteiro.',
       );
-      const fatGrams = parseInteger(values.fatGrams, 'Gorduras devem ser um numero inteiro.');
+      const fatGrams = parseInteger(values.fatGrams, 'Gorduras devem ser um número inteiro.');
       const mealsCount = values.mealsCount.trim()
-        ? parseInteger(values.mealsCount, 'Refeicoes devem ser um numero inteiro.')
+        ? parseInteger(values.mealsCount, 'Refeições devem ser um número inteiro.')
         : 0;
 
       if (!name || !objective) {
@@ -396,12 +396,12 @@ export function NutritionPlanForm({
       }
 
       if (normalizedMeals.length === 0) {
-        setFormError('Adicione pelo menos uma refeicao com alimento antes de salvar.');
+        setFormError('Adicione pelo menos uma refeição com alimento antes de salvar.');
         return;
       }
 
       if (mealsCount < 0) {
-        setFormError('Refeicoes devem ser maiores que zero.');
+        setFormError('Refeições devem ser maiores que zero.');
         return;
       }
 
@@ -420,7 +420,7 @@ export function NutritionPlanForm({
 
       onSubmit(nutritionPlanData);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Plano alimentar invalido.');
+      setFormError(error instanceof Error ? error.message : 'Plano alimentar inválido.');
     }
   };
 
@@ -441,7 +441,7 @@ export function NutritionPlanForm({
         <span>Objetivo</span>
         <input
           onInput={(event) => updateValue('objective', (event.target as HTMLInputElement).value)}
-          placeholder="Hipertrofia, emagrecimento, manutencao"
+          placeholder="Hipertrofia, emagrecimento, manutenção"
           required
           type="text"
           value={values.objective}
@@ -462,7 +462,7 @@ export function NutritionPlanForm({
         </label>
 
         <label>
-          <span>Refeicoes</span>
+          <span>Refeições</span>
           <input
             min="0"
             placeholder="0"
@@ -475,7 +475,7 @@ export function NutritionPlanForm({
 
       <div className="student-form-row">
         <label>
-          <span>Proteinas g</span>
+          <span>Proteínas g</span>
           <input
             min="0"
             onInput={(event) =>
@@ -518,30 +518,30 @@ export function NutritionPlanForm({
       <section className="nutrition-meals-section" aria-labelledby="nutrition-meals-title">
         <div className="nutrition-meals-heading">
           <div>
-            <span id="nutrition-meals-title">Refeicoes do dia</span>
-            <small>{countValidMeals(values.meals)} refeicoes com alimentos</small>
+            <span id="nutrition-meals-title">Refeições do dia</span>
+            <small>{countValidMeals(values.meals)} refeições com alimentos</small>
           </div>
 
           <button className="nutrition-meal-add-button" onClick={addMeal} type="button">
-            + Refeicao
+            + Refeição
           </button>
         </div>
 
         {values.meals.length === 0 ? (
           <p className="nutrition-meals-empty">
-            Nenhuma refeicao adicionada. Use o botao acima para montar o plano.
+            Nenhuma refeição adicionada. Use o botão acima para montar o plano.
           </p>
         ) : (
           <div className="nutrition-meal-editor-list">
             {values.meals.map((meal, mealIndex) => (
               <article className="nutrition-meal-editor" key={mealIndex}>
                 <div className="nutrition-meal-editor-heading">
-                  <span className="nutrition-meal-index" aria-label={`Refeicao ${mealIndex + 1}`}>
+                  <span className="nutrition-meal-index" aria-label={`Refeição ${mealIndex + 1}`}>
                     {mealIndex + 1}
                   </span>
 
                   <label>
-                    <span>Refeicao</span>
+                    <span>Refeição</span>
                     <input
                       onInput={(event) =>
                         updateMealValue(
@@ -550,7 +550,7 @@ export function NutritionPlanForm({
                           (event.target as HTMLInputElement).value,
                         )
                       }
-                      placeholder="Ex: Cafe da Manha"
+                      placeholder="Ex: Café da Manhã"
                       type="text"
                       value={meal.name}
                     />
@@ -577,7 +577,7 @@ export function NutritionPlanForm({
                     onClick={() => removeMeal(mealIndex)}
                     type="button"
                   >
-                    Remover refeicao
+                    Remover refeição
                   </button>
                 </div>
 
@@ -661,10 +661,10 @@ export function NutritionPlanForm({
       </section>
 
       <label>
-        <span>Observacoes</span>
+        <span>Observações</span>
         <input
           onInput={(event) => updateValue('notes', (event.target as HTMLInputElement).value)}
-          placeholder="Orientacoes gerais do plano"
+          placeholder="Orientações gerais do plano"
           type="text"
           value={values.notes}
         />
@@ -673,7 +673,7 @@ export function NutritionPlanForm({
       <div className="workout-form-actions">
         {isEditing && (
           <button className="dashboard-secondary-button" onClick={onCancelEdit} type="button">
-            Cancelar edicao
+            Cancelar edição
           </button>
         )}
 

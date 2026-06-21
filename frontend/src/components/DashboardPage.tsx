@@ -76,7 +76,7 @@ function getNutritionObjectives(nutritionPlans: NutritionPlan[]) {
 }
 
 function getStudentName(students: Student[], studentId: number) {
-  return students.find((student) => student.id === studentId)?.name || 'Aluno nao encontrado';
+  return students.find((student) => student.id === studentId)?.name || 'Aluno não encontrado';
 }
 
 function getMetricsForStudent(metrics: Metric[], studentId: number) {
@@ -87,13 +87,13 @@ function getWeightTrend(metrics: Metric[]) {
   const [latestMetric, previousMetric] = metrics.filter((metric) => metric.weightKg !== null);
 
   if (!latestMetric || !previousMetric || latestMetric.weightKg === null || previousMetric.weightKg === null) {
-    return 'historico em acompanhamento';
+    return 'histórico em acompanhamento';
   }
 
   const difference = latestMetric.weightKg - previousMetric.weightKg;
 
   if (difference === 0) {
-    return 'peso estavel desde a ultima avaliacao';
+    return 'peso estável desde a última avaliação';
   }
 
   const formattedDifference = Math.abs(difference).toLocaleString('pt-BR', {
@@ -101,7 +101,7 @@ function getWeightTrend(metrics: Metric[]) {
     minimumFractionDigits: 0,
   });
 
-  return `${difference > 0 ? '+' : '-'}${formattedDifference} kg desde a ultima avaliacao`;
+  return `${difference > 0 ? '+' : '-'}${formattedDifference} kg desde a última avaliação`;
 }
 
 function getMetricChartPoints(metrics: Metric[]) {
@@ -173,7 +173,7 @@ export function DashboardPage({
       }
 
       console.error(error);
-      setWorkoutsError('Nao foi possivel carregar os treinos.');
+      setWorkoutsError('Não foi possível carregar os treinos.');
     } finally {
       setIsLoadingWorkouts(false);
     }
@@ -193,7 +193,7 @@ export function DashboardPage({
       }
 
       console.error(error);
-      setMetricsError('Nao foi possivel carregar as metricas.');
+      setMetricsError('Não foi possível carregar as métricas.');
     } finally {
       setIsLoadingMetrics(false);
     }
@@ -213,7 +213,7 @@ export function DashboardPage({
       }
 
       console.error(error);
-      setNutritionPlansError('Nao foi possivel carregar as dietas.');
+      setNutritionPlansError('Não foi possível carregar as dietas.');
     } finally {
       setIsLoadingNutritionPlans(false);
     }
@@ -395,7 +395,7 @@ export function DashboardPage({
 
         <div className="dashboard-user-details">
           <p>
-            <span>Email</span>
+            <span>E-mail</span>
             <strong>{user.email}</strong>
           </p>
           <p>
@@ -462,7 +462,7 @@ export function DashboardPage({
             </label>
 
             <label>
-              <span>Email do aluno</span>
+              <span>E-mail do aluno</span>
               <input
                 type="email"
                 placeholder="ana@email.com"
@@ -587,7 +587,7 @@ export function DashboardPage({
     return (
       <section className="dashboard-tab-page" aria-labelledby="workouts-title">
         <div className="dashboard-page-heading feature-page-heading feature-page-heading-workouts">
-          <span className="dashboard-section-kicker">Prescricao de treinos</span>
+          <span className="dashboard-section-kicker">Prescrição de treinos</span>
           <h1 id="workouts-title">Treinos</h1>
           <p>Visualize os treinos reais cadastrados para os alunos do profissional.</p>
         </div>
@@ -599,7 +599,7 @@ export function DashboardPage({
             <small>treinos cadastrados</small>
           </article>
           <article className="feature-summary-card">
-            <span>Media</span>
+            <span>Média</span>
             <strong>{formatAverageDuration(workouts)}</strong>
             <small>por treino</small>
           </article>
@@ -639,7 +639,7 @@ export function DashboardPage({
             </article>
           ) : workouts.length === 0 ? (
             <article className="feature-card">
-              <p>Nenhum treino cadastrado ainda.</p>
+              <p>Nenhum treino cadastrado.</p>
             </article>
           ) : (
             workouts.map((workout) => (
@@ -656,14 +656,14 @@ export function DashboardPage({
 
                 <div className="feature-meta-grid">
                   <span>{workout.durationMinutes} min</span>
-                  <span>{workout.exercisesCount} exercicios</span>
+                  <span>{workout.exercisesCount} exercícios</span>
                   <span>Atualizado</span>
                 </div>
 
                 <div className="feature-progress-block">
                   <div>
-                    <span>Descricao</span>
-                    <strong>{workout.description || 'Sem descricao'}</strong>
+                    <span>Descrição</span>
+                    <strong>{workout.description || 'Sem descrição'}</strong>
                   </div>
                 </div>
 
@@ -707,9 +707,9 @@ export function DashboardPage({
             <small>planos cadastrados</small>
           </article>
           <article className="feature-summary-card">
-            <span>Refeicoes</span>
+            <span>Refeições</span>
             <strong>{formatAverageMeals(nutritionPlans)}</strong>
-            <small>media por plano</small>
+            <small>média por plano</small>
           </article>
           <article className="feature-summary-card">
             <span>Objetivos</span>
@@ -766,7 +766,7 @@ export function DashboardPage({
 
                 <div className="feature-meta-grid">
                   <span>{nutritionPlan.calories} kcal/dia</span>
-                  <span>{nutritionPlan.mealsCount} refeicoes</span>
+                  <span>{nutritionPlan.mealsCount} refeições</span>
                   <span>Atualizado</span>
                 </div>
 
@@ -778,7 +778,7 @@ export function DashboardPage({
                   )}`}
                 >
                   <div>
-                    <span>Proteinas</span>
+                    <span>Proteínas</span>
                     <strong>{nutritionPlan.proteinGrams}g</strong>
                   </div>
                   <div>
@@ -793,8 +793,8 @@ export function DashboardPage({
 
                 <div className="feature-progress-block">
                   <div>
-                    <span>Observacoes</span>
-                    <strong>{nutritionPlan.notes || 'Sem observacoes'}</strong>
+                    <span>Observações</span>
+                    <strong>{nutritionPlan.notes || 'Sem observações'}</strong>
                   </div>
                 </div>
 
@@ -841,16 +841,16 @@ export function DashboardPage({
     return (
       <section className="dashboard-tab-page" aria-labelledby="metrics-title">
         <div className="dashboard-page-heading feature-page-heading feature-page-heading-metrics">
-          <span className="dashboard-section-kicker">Evolucao corporal</span>
-          <h1 id="metrics-title">Metricas</h1>
+          <span className="dashboard-section-kicker">Evolução corporal</span>
+          <h1 id="metrics-title">Métricas</h1>
           <p>
-            Acompanhe peso, composicao corporal e medidas principais registradas para seus alunos.
+            Acompanhe peso, composição corporal e medidas principais registradas para seus alunos.
           </p>
         </div>
 
         {isLoadingMetrics ? (
           <article className="feature-card">
-            <p>Carregando metricas...</p>
+            <p>Carregando métricas...</p>
           </article>
         ) : metricsError ? (
           <article className="feature-card">
@@ -858,11 +858,11 @@ export function DashboardPage({
           </article>
         ) : metrics.length === 0 ? (
           <article className="feature-card">
-            <p>Nenhuma metrica cadastrada ainda.</p>
+            <p>Nenhuma métrica cadastrada.</p>
           </article>
         ) : (
           <>
-            <div className="metrics-student-row" aria-label="Selecionar aluno para metricas">
+            <div className="metrics-student-row" aria-label="Selecionar aluno para métricas">
               {studentsWithMetrics.map((student) => (
                 <button
                   className={`metrics-student-chip${
@@ -880,7 +880,7 @@ export function DashboardPage({
 
             <section
               className="metrics-card-grid"
-              aria-label={`Metricas de ${selectedMetricStudent?.name || 'aluno'}`}
+              aria-label={`Métricas de ${selectedMetricStudent?.name || 'aluno'}`}
             >
               <article className="metric-card">
                 <span>Peso atual</span>
@@ -892,14 +892,14 @@ export function DashboardPage({
                 <strong>
                   {selectedMetric ? formatMetricValue(selectedMetric.bodyFatPercentage, '%') : '--'}
                 </strong>
-                <small>ultima avaliacao registrada</small>
+                <small>última avaliação registrada</small>
               </article>
               <article className="metric-card">
                 <span>Massa muscular</span>
                 <strong>
                   {selectedMetric ? formatMetricValue(selectedMetric.muscleMassKg, 'kg') : '--'}
                 </strong>
-                <small>composicao corporal</small>
+                <small>composição corporal</small>
               </article>
               <article className="metric-card">
                 <span>IMC</span>
@@ -915,7 +915,7 @@ export function DashboardPage({
             <article className="dashboard-panel metrics-chart-panel">
               <div className="dashboard-section-heading dashboard-section-heading-row">
                 <div>
-                  <span className="dashboard-section-kicker">Historico visual</span>
+                  <span className="dashboard-section-kicker">Histórico visual</span>
                   <h2>{selectedMetricStudent?.name || 'Aluno selecionado'}</h2>
                 </div>
                 <span className="feature-status-pill">
@@ -924,7 +924,7 @@ export function DashboardPage({
                 </span>
               </div>
 
-              <div className="metrics-chart-bars" aria-label="Historico visual de peso">
+              <div className="metrics-chart-bars" aria-label="Histórico visual de peso">
                 {chartPoints.map((point, index) => (
                   <span
                     className="metrics-chart-bar"
@@ -938,7 +938,7 @@ export function DashboardPage({
             <article className="dashboard-panel">
               <div className="dashboard-section-heading">
                 <span className="dashboard-section-kicker">Medidas corporais</span>
-                <h2>Ultimas afericoes</h2>
+                <h2>Últimas aferições</h2>
               </div>
 
               <div className="measurement-list">
@@ -953,7 +953,7 @@ export function DashboardPage({
                   <span>Altura</span>
                   <strong>{selectedMetric ? formatMetricValue(selectedMetric.heightCm, 'cm') : '--'}</strong>
                   <small className="measurement-change measurement-change-neutral">
-                    dado de referencia
+                    dado de referência
                   </small>
                 </div>
                 <div className="measurement-item">
@@ -962,14 +962,14 @@ export function DashboardPage({
                     {selectedMetric ? formatMetricValue(selectedMetric.bodyFatPercentage, '%') : '--'}
                   </strong>
                   <small className="measurement-change measurement-change-neutral">
-                    composicao
+                    composição
                   </small>
                 </div>
                 <div className="measurement-item">
                   <span>Massa muscular</span>
                   <strong>{selectedMetric ? formatMetricValue(selectedMetric.muscleMassKg, 'kg') : '--'}</strong>
                   <small className="measurement-change measurement-change-neutral">
-                    composicao
+                    composição
                   </small>
                 </div>
                 <div className="measurement-item">
@@ -986,7 +986,7 @@ export function DashboardPage({
               </div>
             </article>
 
-            <section className="feature-card-list" aria-label="Historico de metricas">
+            <section className="feature-card-list" aria-label="Histórico de métricas">
               {selectedStudentMetrics.map((metric) => (
                 <article className="feature-card" key={metric.id}>
                   <div className="feature-card-header">
@@ -994,7 +994,7 @@ export function DashboardPage({
                       <span className="feature-student-name">
                         {selectedMetricStudent?.name || getStudentName(visibleStudents, metric.studentId)}
                       </span>
-                      <h2>Avaliacao de {formatObservationDate(metric.recordedAt)}</h2>
+                      <h2>Avaliação de {formatObservationDate(metric.recordedAt)}</h2>
                     </div>
                     <span className="feature-status-pill">
                       IMC {calculateBmi(metric.weightKg, metric.heightCm)}
@@ -1009,8 +1009,8 @@ export function DashboardPage({
 
                   <div className="feature-progress-block">
                     <div>
-                      <span>Observacoes</span>
-                      <strong>{metric.notes || 'Sem observacoes'}</strong>
+                      <span>Observações</span>
+                      <strong>{metric.notes || 'Sem observações'}</strong>
                     </div>
                   </div>
 

@@ -10,5 +10,5 @@ export function getInitials(name: string) {
 }
 
 export function formatAge(age: number) {
-  return Number.isFinite(age) && age > 0 ? `${age} anos` : 'Idade nao informada';
+  return Number.isFinite(age) && age > 0 ? `${age} anos` : 'Idade não informada';
 }

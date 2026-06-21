@@ -94,15 +94,15 @@ export function MetricForm({
     event.preventDefault();
 
     try {
-      const weightKg = parseOptionalNumber(values.weightKg, 'Peso deve ser um numero valido.');
-      const heightCm = parseOptionalNumber(values.heightCm, 'Altura deve ser um numero valido.');
+      const weightKg = parseOptionalNumber(values.weightKg, 'Peso deve ser um número válido.');
+      const heightCm = parseOptionalNumber(values.heightCm, 'Altura deve ser um número válido.');
       const bodyFatPercentage = parseOptionalNumber(
         values.bodyFatPercentage,
-        'Gordura corporal deve ser um numero valido.',
+        'Gordura corporal deve ser um número válido.',
       );
       const muscleMassKg = parseOptionalNumber(
         values.muscleMassKg,
-        'Massa muscular deve ser um numero valido.',
+        'Massa muscular deve ser um número válido.',
       );
 
       if (
@@ -111,7 +111,7 @@ export function MetricForm({
         bodyFatPercentage === undefined &&
         muscleMassKg === undefined
       ) {
-        setFormError('Informe ao menos uma metrica corporal.');
+        setFormError('Informe ao menos uma métrica corporal.');
         return;
       }
 
@@ -162,7 +162,7 @@ export function MetricForm({
 
       onSubmit(metricData);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Metrica invalida.');
+      setFormError(error instanceof Error ? error.message : 'Métrica inválida.');
     }
   };
 
@@ -211,7 +211,7 @@ export function MetricForm({
         </label>
 
         <label>
-          <span>Massa magra kg</span>
+          <span>Massa muscular kg</span>
           <input
             min="0"
             onInput={(event) =>
@@ -226,7 +226,7 @@ export function MetricForm({
       </div>
 
       <label>
-        <span>Data da avaliacao</span>
+        <span>Data da avaliação</span>
         <input
           onInput={(event) => updateValue('recordedAt', (event.target as HTMLInputElement).value)}
           type="date"
@@ -235,22 +235,22 @@ export function MetricForm({
       </label>
 
       <label>
-        <span>Observacoes</span>
+        <span>Observações</span>
         <input
           onInput={(event) => updateValue('notes', (event.target as HTMLInputElement).value)}
-          placeholder="Resumo da avaliacao"
+          placeholder="Resumo da avaliação"
           type="text"
           value={values.notes}
         />
       </label>
 
       <button className="dashboard-primary-button" disabled={isSubmitting} type="submit">
-        {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar metrica' : 'Registrar metrica'}
+        {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar métrica' : 'Registrar métrica'}
       </button>
 
       {isEditing && (
         <button className="dashboard-secondary-button" onClick={onCancelEdit} type="button">
-          Cancelar edicao
+          Cancelar edição
         </button>
       )}
 

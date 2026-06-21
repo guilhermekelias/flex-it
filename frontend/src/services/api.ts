@@ -197,7 +197,7 @@ type RequestOptions = RequestInit & {
 
 export class ApiUnauthorizedError extends Error {
   constructor() {
-    super('Sessao expirada ou nao autorizada');
+    super('Sessão expirada ou não autorizada');
     this.name = 'ApiUnauthorizedError';
   }
 }

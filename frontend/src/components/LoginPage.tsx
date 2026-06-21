@@ -27,7 +27,7 @@ export function LoginPage({
           <p className="login-eyebrow">Flex-It</p>
           <h1 id="login-title">Acesse o Flex-It</h1>
           <p className="login-subtitle">
-            Entre como profissional ou aluno para acompanhar treinos, dietas e evolucao.
+            Entre como profissional ou aluno para acompanhar treinos, dietas e evolução.
           </p>
         </div>
 

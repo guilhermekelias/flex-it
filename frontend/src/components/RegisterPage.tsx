@@ -121,7 +121,7 @@ export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageP
           )}
 
           <button className="auth-switch-button" onClick={onBackToLogin} type="button">
-            Ja tenho conta
+            Já tenho conta
           </button>
         </div>
       </section>

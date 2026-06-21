@@ -10,7 +10,7 @@ export function getExerciseMeta(exercise: ReturnType<typeof getStructuredWorkout
   const meta: string[] = [];
 
   if (exercise.sets) {
-    meta.push(`${exercise.sets} series`);
+    meta.push(`${exercise.sets} séries`);
   }
 
   if (exercise.reps) {
