@@ -313,7 +313,7 @@ describe('fluxos principais do frontend', () => {
     expect(screen.getByText('Ana Silva')).toBeTruthy();
   });
 
-  it('renderiza detalhes do aluno com treinos, dietas, metricas e observacoes', async () => {
+  it('renderiza detalhes do aluno em abas com treinos, dietas, metricas e observacoes', async () => {
     render(
       <StudentDetail
         student={students[0]}
@@ -325,10 +325,21 @@ describe('fluxos principais do frontend', () => {
       />,
     );
 
+    await waitFor(() => expect(api.getStudentWorkouts).toHaveBeenCalled());
+    expect(screen.getByText('Acompanhamento de Ana Silva')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Treinos' }));
     expect(await screen.findByText('Treino A')).toBeTruthy();
+    expect(screen.queryByText('Plano hipertrofia')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dietas' }));
     expect(await screen.findByText('Plano hipertrofia')).toBeTruthy();
-    expect(await screen.findByText('Manter hidratacao durante o treino.')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Metricas' }));
     expect(await screen.findByText('Boa evolucao')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Comunicacao' }));
+    expect(await screen.findByText('Manter hidratacao durante o treino.')).toBeTruthy();
   });
 
   it('renderiza portal do aluno e alterna entre as abas carregadas', async () => {
