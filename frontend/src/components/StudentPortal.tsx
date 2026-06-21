@@ -462,9 +462,9 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     <div className="student-portal-shell">
       <main className="student-portal-page">
         <header className="student-portal-header">
-          <div className="student-portal-brand" aria-label="FlexIt">
-            <span className="student-portal-brand-mark">F</span>
-            <span>FlexIt</span>
+          <div className="student-portal-brand" aria-label="Flex-It">
+            <img className="student-portal-brand-mark" src="/Icone.png" alt="" aria-hidden="true" />
+            <span>Flex-It</span>
           </div>
 
           <button className="student-portal-logout" onClick={onLogout} type="button">

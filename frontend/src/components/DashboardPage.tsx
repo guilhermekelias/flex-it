@@ -1041,9 +1041,9 @@ export function DashboardPage({
     <div className="dashboard-shell">
       <main className="dashboard-page">
         <header className="dashboard-app-header">
-          <div className="dashboard-brand" aria-label="FlexIt">
-            <span className="dashboard-brand-mark">F</span>
-            <span>FlexIt</span>
+          <div className="dashboard-brand" aria-label="Flex-It">
+            <img className="dashboard-brand-mark" src="/Icone.png" alt="" aria-hidden="true" />
+            <span>Flex-It</span>
           </div>
 
           <div className="dashboard-app-actions">

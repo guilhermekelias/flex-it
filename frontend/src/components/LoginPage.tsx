@@ -23,11 +23,9 @@ export function LoginPage({
     <main className="login-shell">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand">
-          <div className="login-brand-mark" aria-hidden="true">
-            F
-          </div>
-          <p className="login-eyebrow">FlexIt PWA</p>
-          <h1 id="login-title">Acesse o FlexIt</h1>
+          <img className="login-brand-mark" src="/Icone.png" alt="Flex-It" />
+          <p className="login-eyebrow">Flex-It</p>
+          <h1 id="login-title">Acesse o Flex-It</h1>
           <p className="login-subtitle">
             Entre como profissional ou aluno para acompanhar treinos, dietas e evolucao.
           </p>
@@ -80,7 +78,7 @@ export function LoginPage({
           </button>
         </div>
 
-        <p className="login-footnote">Acesso para profissionais e alunos FlexIt.</p>
+        <p className="login-footnote">Acesso para profissionais e alunos Flex-It.</p>
       </section>
     </main>
   );
