@@ -279,7 +279,7 @@ describe('fluxos principais do frontend', () => {
   it('renderiza o app deslogado na tela de login', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Acesse o FlexIt' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Acesse o Flex-It' })).toBeTruthy();
   });
 
   it('renderiza dashboard e abas profissionais com dados vindos da API', async () => {

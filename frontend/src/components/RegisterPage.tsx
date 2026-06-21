@@ -29,13 +29,11 @@ export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageP
     <main className="login-shell">
       <section className="login-panel" aria-labelledby="register-title">
         <div className="login-brand">
-          <div className="login-brand-mark" aria-hidden="true">
-            F
-          </div>
-          <p className="login-eyebrow">FlexIt PWA</p>
+          <img className="login-brand-mark" src="/Icone.png" alt="Flex-It" />
+          <p className="login-eyebrow">Flex-It PWA</p>
           <h1 id="register-title">Crie sua conta</h1>
           <p className="login-subtitle">
-            Escolha seu perfil para acessar o ambiente correto no FlexIt.
+            Escolha seu perfil para acessar o ambiente correto no Flex-It.
           </p>
         </div>
 
