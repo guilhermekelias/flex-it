@@ -1,3 +1,4 @@
+import 'newrelic';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
@@ -25,7 +26,10 @@ function parseCorsOrigin(origin: string): string | string[] {
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', DEFAULT_CORS_ORIGIN);
+  const corsOrigin = configService.get<string>(
+    'CORS_ORIGIN',
+    DEFAULT_CORS_ORIGIN,
+  );
   const port = Number(configService.get<string>('PORT')) || DEFAULT_PORT;
 
   app.enableCors({
@@ -34,4 +38,4 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 }
-bootstrap();
+void bootstrap();

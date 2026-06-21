@@ -25,7 +25,7 @@ deploy/env/backend.production.env.example -> /opt/flex-it/env/backend.production
 deploy/env/postgres.production.env.example -> /opt/flex-it/env/postgres.production.env
 ```
 
-Edite os arquivos `.env` reais antes de subir. Troque senhas, `JWT_SECRET` e `PRODUCTION_SERVER_NAME`.
+Edite os arquivos `.env` reais antes de subir. Troque senhas, `JWT_SECRET`, `PRODUCTION_SERVER_NAME` e as variaveis do New Relic.
 
 ## 2. Configurar dominio ou DNS da EC2
 
@@ -41,9 +41,14 @@ No arquivo `/opt/flex-it/env/backend.production.env`:
 
 ```env
 CORS_ORIGIN=https://seu-dominio.com.br
+NEW_RELIC_APP_NAME=FlexIt Backend Production
+NEW_RELIC_LICENSE_KEY=sua_license_key_do_new_relic
+NEW_RELIC_LOG=stdout
 ```
 
 Se ainda for usar apenas HTTP, use `http://...` no `CORS_ORIGIN`.
+
+`NEW_RELIC_APP_NAME` e o nome que aparecera em APM & Services no New Relic. `NEW_RELIC_LICENSE_KEY` deve ser preenchida somente no arquivo real da EC2 ou no gerenciador de secrets usado no deploy; nao committe a chave real no repositorio. `NEW_RELIC_LOG=stdout` envia os logs do agente para `docker logs`.
 
 ## 3. Liberar portas na AWS
 
@@ -89,7 +94,10 @@ Teste:
 ```bash
 curl -I http://seu-dominio.com.br
 curl -i http://seu-dominio.com.br/api/
+docker logs flexit-backend-production --tail=100
 ```
+
+Depois de gerar algumas requisicoes para `/api/`, aguarde alguns minutos e confira o servico com o nome definido em `NEW_RELIC_APP_NAME` na tela de APM do New Relic.
 
 ## 6. Gerar certificado HTTPS
 
