@@ -39,8 +39,65 @@ const STUDENT_PORTAL_TABS: Array<{ id: StudentPortalTab; label: string }> = [
   { id: 'observations', label: 'Comunicação' },
 ];
 
+type StudentPortalCheckIn = {
+  label: string;
+  value: string;
+  detail: string;
+};
+
 function getFirstName(name: string) {
   return name.trim().split(' ')[0] || 'aluno';
+}
+
+function formatCheckInDate(value: string | null | undefined) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  return formatObservationDate(value).split(',')[0];
+}
+
+function getMetricCheckInDate(metric: Metric | null) {
+  if (!metric) {
+    return null;
+  }
+
+  return (
+    formatCheckInDate(metric.recordedAt) ??
+    formatCheckInDate(metric.updatedAt) ??
+    formatCheckInDate(metric.createdAt)
+  );
+}
+
+function getStudentPortalCheckIn(
+  metric: Metric | null,
+  workouts: Workout[],
+  nutritionPlans: NutritionPlan[],
+  observations: Array<unknown>,
+): StudentPortalCheckIn {
+  const metricDate = getMetricCheckInDate(metric);
+
+  if (metricDate) {
+    return {
+      label: 'Última atualização',
+      value: metricDate,
+      detail: 'Atualizado pelo profissional',
+    };
+  }
+
+  if (workouts.length > 0 || nutritionPlans.length > 0 || observations.length > 0) {
+    return {
+      label: 'Acompanhamento',
+      value: 'Plano ativo',
+      detail: 'Atualizado pelo profissional',
+    };
+  }
+
+  return {
+    label: 'Acompanhamento',
+    value: 'Em andamento',
+    detail: 'Atualizado pelo profissional',
+  };
 }
 
 function getObservationThreadLabel(thread: ObservationThread) {
@@ -457,6 +514,12 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
       modifier: 'student-portal-summary-stat-observation',
     },
   ];
+  const checkIn = getStudentPortalCheckIn(
+    currentMetric,
+    workouts,
+    nutritionPlans,
+    observations,
+  );
 
   return (
     <div className="student-portal-shell">
@@ -480,9 +543,9 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
           </div>
 
           <div className="student-portal-checkin" aria-label="Resumo do acompanhamento">
-            <span>Check-in</span>
-            <strong>Semana 08</strong>
-            <small>Atualizado pelo profissional</small>
+            <span>{checkIn.label}</span>
+            <strong>{checkIn.value}</strong>
+            <small>{checkIn.detail}</small>
           </div>
         </section>
 
