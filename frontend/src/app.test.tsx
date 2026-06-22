@@ -377,6 +377,10 @@ describe('fluxos principais do frontend', () => {
 
     await waitFor(() => expect(api.getMyWorkouts).toHaveBeenCalled());
     expect(screen.getAllByText(/Olá, Ana/).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Semana 08')).toBeNull();
+    expect(screen.getByText('Última atualização')).toBeTruthy();
+    expect(screen.getByText('03/06/2026')).toBeTruthy();
+    expect(screen.getByText('Atualizado pelo profissional')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Treinos' }));
     await waitFor(() => expect(screen.getAllByText('Treino A').length).toBeGreaterThan(0));
@@ -391,5 +395,42 @@ describe('fluxos principais do frontend', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Comunicação' }));
     expect(await screen.findByText('Manter hidratação durante o treino.')).toBeTruthy();
+  });
+
+  it('mostra plano ativo no card quando não há métrica mas existe acompanhamento', async () => {
+    vi.mocked(api.getMyMetrics).mockResolvedValue([]);
+
+    render(
+      <StudentPortal
+        user={studentUser}
+        onLogout={vi.fn()}
+        onSessionExpired={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(api.getMyWorkouts).toHaveBeenCalled());
+    expect(screen.getByText('Acompanhamento')).toBeTruthy();
+    expect(screen.getByText('Plano ativo')).toBeTruthy();
+    expect(screen.getByText('Atualizado pelo profissional')).toBeTruthy();
+  });
+
+  it('mantém fallback seguro no card quando o portal não tem dados', async () => {
+    vi.mocked(api.getMyWorkouts).mockResolvedValue([]);
+    vi.mocked(api.getMyObservationThreads).mockResolvedValue([]);
+    vi.mocked(api.getMyNutritionPlans).mockResolvedValue([]);
+    vi.mocked(api.getMyMetrics).mockResolvedValue([]);
+
+    render(
+      <StudentPortal
+        user={studentUser}
+        onLogout={vi.fn()}
+        onSessionExpired={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(api.getMyMetrics).toHaveBeenCalled());
+    expect(screen.getByText('Acompanhamento')).toBeTruthy();
+    expect(screen.getByText('Em andamento')).toBeTruthy();
+    expect(screen.getByText('Atualizado pelo profissional')).toBeTruthy();
   });
 });
