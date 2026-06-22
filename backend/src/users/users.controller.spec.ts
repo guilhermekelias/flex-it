@@ -67,7 +67,7 @@ describe('UsersController', () => {
     const data: Partial<User> = {
       name: 'Patricia Lima',
       email: 'patricia@example.com',
-      password: '123456',
+      password: 'Senha@123',
       role: UserRole.PROFESSIONAL,
     };
     const userWithoutPassword = {

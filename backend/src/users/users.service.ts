@@ -21,6 +21,18 @@ type NormalizedCreateUserData = Pick<User, 'name' | 'email' | 'password' | 'role
 
 type PublicUser = Pick<User, 'id' | 'name' | 'email' | 'role'>;
 
+const INVALID_PASSWORD_MESSAGE =
+  'A senha deve ter no mínimo 8 caracteres, incluindo letras, números e caracteres especiais.';
+
+function isStrongPassword(password: string): boolean {
+  return (
+    password.length >= 8 &&
+    /\p{L}/u.test(password) &&
+    /\p{N}/u.test(password) &&
+    /[^\p{L}\p{N}\s]/u.test(password)
+  );
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -97,10 +109,18 @@ export class UsersService {
       throw new BadRequestException('Dados de cadastro invalidos');
     }
 
+    const name = normalizeRequiredText(data.name, 'Nome e obrigatorio');
+    const email = normalizeEmailField(data.email, 'E-mail e obrigatorio', 'E-mail invalido');
+    const password = normalizeRequiredText(data.password, 'Senha e obrigatoria');
+
+    if (!isStrongPassword(password)) {
+      throw new BadRequestException(INVALID_PASSWORD_MESSAGE);
+    }
+
     return {
-      name: normalizeRequiredText(data.name, 'Nome e obrigatorio'),
-      email: normalizeEmailField(data.email, 'E-mail e obrigatorio', 'E-mail invalido'),
-      password: normalizeRequiredText(data.password, 'Senha e obrigatoria'),
+      name,
+      email,
+      password,
       role: this.normalizeRole(data.role),
     };
   }

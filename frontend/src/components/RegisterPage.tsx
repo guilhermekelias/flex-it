@@ -8,15 +8,35 @@ type RegisterPageProps = {
   onSubmit: (payload: RegisterPayload) => void;
 };
 
+const INVALID_PASSWORD_MESSAGE =
+  'A senha deve ter no mínimo 8 caracteres, incluindo letras, números e caracteres especiais.';
+
+function isStrongPassword(password: string): boolean {
+  return (
+    password.length >= 8 &&
+    /\p{L}/u.test(password) &&
+    /\p{N}/u.test(password) &&
+    /[^\p{L}\p{N}\s]/u.test(password)
+  );
+}
+
 export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('professional');
+  const [passwordError, setPasswordError] = useState('');
+  const displayedMessage = passwordError || message;
 
   const handleSubmit = (event: JSX.TargetedEvent<HTMLFormElement, Event>) => {
     event.preventDefault();
 
+    if (!isStrongPassword(password)) {
+      setPasswordError(INVALID_PASSWORD_MESSAGE);
+      return;
+    }
+
+    setPasswordError('');
     onSubmit({
       name,
       email,
@@ -77,7 +97,12 @@ export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageP
                 placeholder="Crie uma senha"
                 value={password}
                 autoComplete="new-password"
-                onInput={(event) => setPassword((event.target as HTMLInputElement).value)}
+                aria-invalid={passwordError ? 'true' : undefined}
+                aria-describedby={passwordError ? 'register-password-error' : undefined}
+                onInput={(event) => {
+                  setPassword((event.target as HTMLInputElement).value);
+                  setPasswordError('');
+                }}
                 className="login-input"
                 required
               />
@@ -114,9 +139,13 @@ export function RegisterPage({ message, onBackToLogin, onSubmit }: RegisterPageP
             </button>
           </form>
 
-          {message && (
-            <p className="login-message" role="alert">
-              {message}
+          {displayedMessage && (
+            <p
+              className="login-message"
+              id={passwordError ? 'register-password-error' : undefined}
+              role="alert"
+            >
+              {displayedMessage}
             </p>
           )}
 
