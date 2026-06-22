@@ -251,7 +251,7 @@ describe('componentes de autenticação e navegação', () => {
       target: { value: 'ana@example.com' },
     });
     fireEvent.input(screen.getByPlaceholderText('Crie uma senha'), {
-      target: { value: '123456' },
+      target: { value: 'Senha@123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Aluno' }));
     fireEvent.submit(screen.getByRole('button', { name: 'Criar conta' }).closest('form')!);
@@ -259,9 +259,33 @@ describe('componentes de autenticação e navegação', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       name: 'Ana Silva',
       email: 'ana@example.com',
-      password: '123456',
+      password: 'Senha@123',
       role: 'student',
     });
+  });
+
+  it('bloqueia cadastro com senha fraca', () => {
+    const onSubmit = vi.fn();
+
+    render(
+      <RegisterPage message="" onBackToLogin={vi.fn()} onSubmit={onSubmit} />,
+    );
+
+    fireEvent.input(screen.getByPlaceholderText('Seu nome'), {
+      target: { value: 'Ana Silva' },
+    });
+    fireEvent.input(screen.getByPlaceholderText('seu@email.com'), {
+      target: { value: 'ana@example.com' },
+    });
+    fireEvent.input(screen.getByPlaceholderText('Crie uma senha'), {
+      target: { value: '123456' },
+    });
+    fireEvent.submit(screen.getByRole('button', { name: 'Criar conta' }).closest('form')!);
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain(
+      'A senha deve ter no mínimo 8 caracteres, incluindo letras, números e caracteres especiais.',
+    );
   });
 
   it('aciona a aba escolhida na navegação inferior', () => {

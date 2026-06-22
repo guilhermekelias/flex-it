@@ -74,7 +74,7 @@ describe('UsersService', () => {
     const data: Partial<User> = {
       name: 'Patricia Lima',
       email: 'patricia@example.com',
-      password: '123456',
+      password: 'Senha@123',
       role: UserRole.PROFESSIONAL,
     };
     const user = { id: 1, ...data } as User;
@@ -100,7 +100,7 @@ describe('UsersService', () => {
     const data = {
       name: 'Ana Silva',
       email: ' ANA@example.com ',
-      password: '123456',
+      password: 'Senha@123',
       role: UserRole.STUDENT,
     };
     const pendingStudents = [
@@ -111,7 +111,7 @@ describe('UsersService', () => {
       id: 2,
       name: 'Ana Silva',
       email: 'ana@example.com',
-      password: '123456',
+      password: 'Senha@123',
       role: UserRole.STUDENT,
     } as User;
 
@@ -128,7 +128,7 @@ describe('UsersService', () => {
     expect(usersRepository.create).toHaveBeenCalledWith({
       name: 'Ana Silva',
       email: 'ana@example.com',
-      password: '123456',
+      password: 'Senha@123',
       role: UserRole.STUDENT,
     });
     expect(studentsRepository.find).toHaveBeenCalledWith({
@@ -143,6 +143,26 @@ describe('UsersService', () => {
     ]);
   });
 
+  it.each([
+    ['fewer than 8 characters', 'Aa1@123'],
+    ['no letter', '1234567@'],
+    ['no number', 'Senha@@@'],
+    ['no special character', 'Senha123'],
+  ])('should reject weak password with %s', async (_scenario, password) => {
+    await expect(
+      service.create({
+        name: 'Ana Silva',
+        email: 'ana@example.com',
+        password,
+        role: UserRole.STUDENT,
+      }),
+    ).rejects.toThrow(
+      'A senha deve ter no mínimo 8 caracteres, incluindo letras, números e caracteres especiais.',
+    );
+    expect(usersRepository.findOne).not.toHaveBeenCalled();
+    expect(usersRepository.create).not.toHaveBeenCalled();
+  });
+
   it('should reject duplicate user email', async () => {
     usersRepository.findOne.mockResolvedValue({
       id: 1,
@@ -154,7 +174,7 @@ describe('UsersService', () => {
       service.create({
         name: 'Ana Silva',
         email: 'ana@example.com',
-        password: '123456',
+        password: 'Senha@123',
         role: UserRole.STUDENT,
       }),
     ).rejects.toBeInstanceOf(ConflictException);
@@ -166,7 +186,7 @@ describe('UsersService', () => {
       service.create({
         name: 'Ana Silva',
         email: 'ana@example.com',
-        password: '123456',
+        password: 'Senha@123',
         role: 'admin',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
