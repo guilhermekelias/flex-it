@@ -1692,6 +1692,22 @@ button {
   color: #15803d;
 }
 
+.feature-filter-row-diets {
+  flex-wrap: wrap;
+  margin-inline: 0;
+  overflow-x: visible;
+  padding-inline: 0;
+}
+
+.feature-filter-row-diets .feature-filter-chip {
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+
 .feature-card-list {
   display: grid;
   gap: 10px;
@@ -1842,6 +1858,55 @@ button {
 .nutrition-card .feature-card-footer button {
   background: #f0fdf4;
   color: #15803d;
+}
+
+.diets-tab-page,
+.diets-tab-page .dashboard-page-heading,
+.diets-tab-page .feature-summary-card,
+.diets-tab-page .feature-card-list,
+.diets-tab-page .feature-card,
+.nutrition-card .feature-card-header > div,
+.nutrition-card .feature-card-footer > span,
+.nutrition-card .feature-progress-block,
+.nutrition-card .feature-progress-block > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.feature-page-heading-diets .dashboard-section-kicker,
+.feature-page-heading-diets h1,
+.feature-page-heading-diets p,
+.nutrition-card .feature-student-name,
+.nutrition-card .feature-card-header h2,
+.nutrition-card .feature-progress-block strong,
+.nutrition-card .feature-card-footer > span {
+  overflow-wrap: anywhere;
+}
+
+.nutrition-card .feature-card-header {
+  flex-wrap: wrap;
+}
+
+.nutrition-card .feature-card-header > div {
+  flex: 1 1 min(220px, 100%);
+}
+
+.nutrition-card .feature-status-pill {
+  flex: 0 1 auto;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.nutrition-card .feature-progress-block div:first-child {
+  align-items: flex-start;
+}
+
+.nutrition-card .feature-progress-block strong {
+  min-width: 0;
+  line-height: 1.35;
 }
 
 .nutrition-macro-grid {
