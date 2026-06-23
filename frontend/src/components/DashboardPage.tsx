@@ -650,7 +650,7 @@ export function DashboardPage({
     const nutritionObjectives = getNutritionObjectives(nutritionPlans);
 
     return (
-      <section className="dashboard-tab-page" aria-labelledby="diets-title">
+      <section className="dashboard-tab-page diets-tab-page" aria-labelledby="diets-title">
         <div className="dashboard-page-heading feature-page-heading feature-page-heading-diets">
           <span className="dashboard-section-kicker">Planejamento alimentar</span>
           <h1 id="diets-title">Dietas</h1>
@@ -675,7 +675,10 @@ export function DashboardPage({
           </article>
         </section>
 
-        <div className="feature-filter-row" aria-label="Objetivos de dieta cadastrados">
+        <div
+          className="feature-filter-row feature-filter-row-diets"
+          aria-label="Objetivos de dieta cadastrados"
+        >
           {nutritionObjectives.length === 0 ? (
             <button className="feature-filter-chip feature-filter-chip-diets" disabled type="button">
               Sem objetivos cadastrados
