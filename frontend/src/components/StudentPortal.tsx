@@ -15,12 +15,13 @@ import {
   type Workout,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
-import { calculateBmi, formatMetricValue } from '../utils/metricDisplay';
+import { formatMetricValue } from '../utils/metricDisplay';
 import {
   getObservationSenderLabel,
   getObservationSenderRole,
 } from '../utils/observationDisplay';
 import { NutritionMealSummaryList } from './NutritionMealSummaryList';
+import { StudentMetricsOverview } from './StudentMetricsOverview';
 import { WorkoutExerciseSummaryList } from './WorkoutExerciseSummaryList';
 
 type StudentPortalProps = {
@@ -106,26 +107,6 @@ function getObservationThreadLabel(thread: ObservationThread) {
     : 'Sem profissional vinculado';
 
   return `Vínculo #${thread.studentId} | ${professionalLabel}`;
-}
-
-function getMetricSummary(metric: Metric | null) {
-  return [
-    {
-      label: 'Peso',
-      value: metric ? formatMetricValue(metric.weightKg, 'kg') : '--',
-      detail: metric ? formatObservationDate(metric.recordedAt) : 'sem avaliação',
-    },
-    {
-      label: 'Gordura',
-      value: metric ? formatMetricValue(metric.bodyFatPercentage, '%') : '--',
-      detail: metric ? 'composição corporal' : 'aguardando dados',
-    },
-    {
-      label: 'IMC',
-      value: metric ? calculateBmi(metric.weightKg, metric.heightCm) : '--',
-      detail: metric ? 'calculado por peso e altura' : 'peso e altura pendentes',
-    },
-  ];
 }
 
 export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPortalProps) {
@@ -438,7 +419,6 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
     ? `Atualizado em ${formatObservationDate(currentWorkout.updatedAt)}`
     : workoutError || 'Seu profissional ainda não cadastrou treinos.';
   const currentMetric = metrics[0] ?? null;
-  const mainMetrics = getMetricSummary(currentMetric);
   const currentNutritionPlan = nutritionPlans[0] ?? null;
   const nutritionPlanProgress = nutritionPlans.length > 0 ? 100 : 0;
   const nutritionPlanTitle = isLoadingNutritionPlans
@@ -731,44 +711,11 @@ export function StudentPortal({ user, onLogout, onSessionExpired }: StudentPorta
                   <h2>{isLoadingMetrics ? 'Carregando métricas...' : 'Evolução recente'}</h2>
                 </div>
 
-                {metricError ? (
-                  <p className="student-portal-card-note">{metricError}</p>
-                ) : metrics.length === 0 && !isLoadingMetrics ? (
-                  <p className="student-portal-card-note">
-                    Seu profissional ainda não registrou métricas.
-                  </p>
-                ) : (
-                  <>
-                    <div className="student-portal-metric-grid">
-                      {mainMetrics.map((metric) => (
-                        <div key={metric.label}>
-                          <span>{metric.label}</span>
-                          <strong>{metric.value}</strong>
-                          <small>{metric.detail}</small>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="student-portal-note-list">
-                      {isLoadingMetrics ? (
-                        <p>Carregando métricas...</p>
-                      ) : (
-                        metrics.slice(0, 4).map((metric) => (
-                          <article className="student-portal-note-item" key={metric.id}>
-                            <p>
-                              <strong>{formatObservationDate(metric.recordedAt)}</strong>
-                              {metric.notes ? ` - ${metric.notes}` : ''}
-                            </p>
-                            <span>
-                              Peso {formatMetricValue(metric.weightKg, 'kg')} | IMC{' '}
-                              {calculateBmi(metric.weightKg, metric.heightCm)}
-                            </span>
-                          </article>
-                        ))
-                      )}
-                    </div>
-                  </>
-                )}
+                <StudentMetricsOverview
+                  error={metricError}
+                  isLoading={isLoadingMetrics}
+                  metrics={metrics}
+                />
               </article>
             </section>
           )}

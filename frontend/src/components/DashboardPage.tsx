@@ -10,7 +10,12 @@ import {
   type Workout,
 } from '../services/api';
 import { formatObservationDate } from '../utils/formatObservationDate';
-import { calculateBmi, formatMetricValue } from '../utils/metricDisplay';
+import {
+  calculateBmi,
+  formatMetricValue,
+  getMetricChartPoints,
+  getWeightTrend,
+} from '../utils/metricDisplay';
 import { formatAge, getInitials } from '../utils/studentDisplay';
 import { BottomNavigation, type DashboardTab } from './BottomNavigation';
 import { StudentDetail } from './StudentDetail';
@@ -81,54 +86,6 @@ function getStudentName(students: Student[], studentId: number) {
 
 function getMetricsForStudent(metrics: Metric[], studentId: number) {
   return metrics.filter((metric) => metric.studentId === studentId);
-}
-
-function getWeightTrend(metrics: Metric[]) {
-  const [latestMetric, previousMetric] = metrics.filter((metric) => metric.weightKg !== null);
-
-  if (!latestMetric || !previousMetric || latestMetric.weightKg === null || previousMetric.weightKg === null) {
-    return 'histórico em acompanhamento';
-  }
-
-  const difference = latestMetric.weightKg - previousMetric.weightKg;
-
-  if (difference === 0) {
-    return 'peso estável desde a última avaliação';
-  }
-
-  const formattedDifference = Math.abs(difference).toLocaleString('pt-BR', {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-  });
-
-  return `${difference > 0 ? '+' : '-'}${formattedDifference} kg desde a última avaliação`;
-}
-
-function getMetricChartPoints(metrics: Metric[]) {
-  const weightValues = metrics
-    .slice(0, 6)
-    .reverse()
-    .map((metric) => metric.weightKg)
-    .filter((weightKg): weightKg is number => weightKg !== null && Number.isFinite(weightKg));
-
-  if (weightValues.length === 0) {
-    return [28, 42, 56, 70];
-  }
-
-  if (weightValues.length === 1) {
-    return [50];
-  }
-
-  const minimumWeight = Math.min(...weightValues);
-  const maximumWeight = Math.max(...weightValues);
-
-  if (minimumWeight === maximumWeight) {
-    return weightValues.map(() => 55);
-  }
-
-  return weightValues.map((weightKg) =>
-    Math.round(30 + ((weightKg - minimumWeight) / (maximumWeight - minimumWeight)) * 55),
-  );
 }
 
 export function DashboardPage({

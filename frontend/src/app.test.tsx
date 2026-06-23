@@ -392,9 +392,34 @@ describe('fluxos principais do frontend', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
     expect(await screen.findByText('Peso')).toBeTruthy();
+    expect(screen.getByText('Histórico visual')).toBeTruthy();
+    expect(screen.getByText('Evolução do peso')).toBeTruthy();
+    expect(screen.getByText('Histórico recente')).toBeTruthy();
+    expect(screen.queryByText('Registrar métrica')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Comunicação' }));
     expect(await screen.findByText('Manter hidratação durante o treino.')).toBeTruthy();
+  });
+
+  it('mostra estado vazio amigável na aba de métricas do aluno', async () => {
+    vi.mocked(api.getMyMetrics).mockResolvedValue([]);
+
+    render(
+      <StudentPortal
+        user={studentUser}
+        onLogout={vi.fn()}
+        onSessionExpired={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => expect(api.getMyMetrics).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Métricas' }));
+
+    expect(
+      screen.getByText(
+        'Suas métricas ainda não foram registradas. Quando seu profissional adicionar uma avaliação, sua evolução aparecerá aqui.',
+      ),
+    ).toBeTruthy();
   });
 
   it('mostra plano ativo no card quando não há métrica mas existe acompanhamento', async () => {
